@@ -51,7 +51,7 @@ def show_results(results, key_prefix: str):
     cols = st.columns(4)
     for i, row in results.iterrows():
         with cols[i % 4]:
-            st.image(str(ROOT / row.image_path), use_container_width=True)
+            st.image(str(ROOT / row.image_path), width="stretch")
             badges = " · ".join(
                 b for b in [SOURCE_LABEL[row.source], "Pre-owned" if row.is_preowned else None] if b
             )
@@ -72,7 +72,7 @@ def main():
     if item_id := st.session_state.get("similar_to"):
         row = engine.catalog.set_index("item_id").loc[item_id]
         left, right = st.columns([1, 4])
-        left.image(str(ROOT / row.image_path), use_container_width=True)
+        left.image(str(ROOT / row.image_path), width="stretch")
         right.subheader("More like this")
         right.write(f"**{row.brand or ''}** — {row.title}")
         if right.button("Clear"):

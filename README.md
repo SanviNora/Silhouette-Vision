@@ -44,6 +44,18 @@ notebooks/           exploratory analysis
 
 See [docs/pipeline.md](docs/pipeline.md) for the full end-to-end design, evaluation plan, and build order.
 
+## Quick start
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+python scripts/01_build_catalog.py          # needs the raw data, see docs/data_guide.md
+python scripts/02_embed.py --model marqo_fashion_siglip
+streamlit run app/ui.py
+```
+
 ## Current milestone
 
-All four core datasets downloaded and profiled (see docs/data_guide.md). Next: Phase 1 MVP.
+**Phase 1 complete:** visual + text search over 229,522 products; ~40 ms per query on an M4.
+Results and failure analysis: [docs/phase1_results.md](docs/phase1_results.md).
+Next: Phase 2, quantitative evaluation on LookBench.

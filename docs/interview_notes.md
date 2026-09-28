@@ -23,6 +23,7 @@ Data-specific Q&A lives in [data_guide.md](data_guide.md#interview-cheat-sheet).
 | 2026-09-28 | One DataLoader across all chunks, saving results chunk by chunk | macOS starts DataLoader workers by re-importing torch; restarting them per chunk halved throughput (30 → 55 img/s) | Per-chunk loaders |
 | 2026-09-28 | **Dropped FAISS; exact search is one NumPy dot product** | FAISS's bundled OpenMP runtime crashed alongside PyTorch's on macOS (the suggested env-var workaround is documented as able to "silently produce incorrect results"). At 230k × 768 an exact search is tens of ms, so an index buys nothing | `KMP_DUPLICATE_LIB_OK=TRUE`; relinking FAISS to torch's libomp |
 | 2026-09-28 | **Public app shows Myntra (MIT) + Visuelle (CC BY-NC-SA, credited); Farfetch appears as analysis + images loaded from Farfetch's own URLs; everything runs locally** | Showing images on a public site is redistribution. Farfetch images are scraped (no license), so we don't re-host them; H&M's rules forbid redistribution | Re-hosting all images publicly; dropping Farfetch from the public version entirely |
+| 2026-09-27 | Qualitative test on 11 real-world photos before any metrics | Catches failure modes metrics hide (colour drift, multi-item photos); gives demo material. Results in `phase1_results.md` | Going straight to LookBench numbers |
 
 ## Likely questions (answers to be filled in with our own results)
 
@@ -42,6 +43,9 @@ Data-specific Q&A lives in [data_guide.md](data_guide.md#interview-cheat-sheet).
 - *How do filters work without hurting results?* They're applied before ranking (scores of excluded items set to −∞), so "bags only" still returns k bags. Filtering *after* a top-k search can return too few results.
 
 **Evaluation**
+- *What did your first tests show?* 11 real photos: logo/pattern and silhouette are captured very strongly (8/8 Louis Vuitton monogram bags for an LV query; 8/8 wide-leg jeans). Weaknesses: subtle colour (burgundy→red), busy runway shots, multi-item photos. Similarity scores fall from ~0.83 to ~0.72 on the hard cases, so they work as a confidence signal.
+- *How would you fix the weaknesses?* Colour: text refinement (partial fix, tested) or colour-aware re-ranking. Multi-item: detect and crop each garment, then search per item; a category filter already fixes it manually (tested).
+- *Why does the model get the logo but miss the colour?* Contrastive training on product captions rewards brand/pattern/shape words that appear in titles; colour is often a single word and less emphasized. Lighting and backgrounds (a burgundy shoe on a patterned sofa) also shift perceived colour.
 - *How do you know the search is good?* → LookBench Recall@K against the public leaderboard; precision@K on Myntra labels.
 - *What is Recall@1 here?* The share of query photos whose top result is the exact same product.
 

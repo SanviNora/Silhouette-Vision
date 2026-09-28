@@ -23,3 +23,4 @@ kaggle.json
 # Run logs and local tooling caches.
 artifacts/logs/
 artifacts/reports/*.json
+artifacts/reports/demo_queries/
