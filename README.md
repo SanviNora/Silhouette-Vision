@@ -52,6 +52,8 @@ pip install -e .
 python scripts/01_build_catalog.py          # needs the raw data, see docs/data_guide.md
 python scripts/02_embed.py --model marqo_fashion_siglip
 python scripts/03_colour_features.py        # optional: enables "Match colour"
+python scripts/04_attributes.py             # attribute models + catalog enrichment
+python scripts/05_style_clusters.py         # style clusters + map
 streamlit run app/ui.py
 ```
 
@@ -60,3 +62,5 @@ streamlit run app/ui.py
 **Phase 1 complete:** visual + text search over 229,522 products; ~40 ms per query on an M4.
 Results and failure analysis: [docs/phase1_results.md](docs/phase1_results.md).
 **Phase 2 complete:** LookBench results reproduce the paper; Marqo + GR-Lite blend is the best retriever; colour-aware re-ranking shipped. See [docs/phase2_results.md](docs/phase2_results.md).
+
+**Phase 3 complete:** attribute prediction and catalog enrichment, luxury style clusters with a style map, garment detection with a user-picked crop. See [docs/phase3_results.md](docs/phase3_results.md).

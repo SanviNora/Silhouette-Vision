@@ -12,7 +12,6 @@ dependencies = [
     "cryptography>=43.0",
     "duckdb>=1.0",
     "fastapi>=0.115",
-    "hdbscan>=0.8",
     "huggingface-hub>=0.25",
     "imagehash>=4.3",
     "kaggle>=1.6",

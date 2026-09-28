@@ -4,7 +4,7 @@ One row per product, with image paths relative to the project root:
 
 item_id | source | source_id | image_path | title | brand | gender | category | article_type |
 colour | price | currency | on_sale | discount_pct | is_preowned | stock | label | description |
-attributes (JSON) | year
+attributes (JSON) | year | season | usage
 """
 
 import html
@@ -46,6 +46,8 @@ def _read_myntra_json(file: Path) -> dict:
         "price": d.get("price"),
         "discounted_price": d.get("discountedPrice"),
         "year": d.get("year"),
+        "season": d.get("season") or None,
+        "usage": d.get("usage") or None,
         "description": _strip_html(((d.get("productDescriptors") or {}).get("description") or {}).get("value")),
         "attributes": json.dumps({k: attrs[k] for k in MYNTRA_ATTRIBUTES if attrs.get(k)}),
     }
@@ -137,7 +139,7 @@ COLUMNS = [
     "item_id", "source", "source_id", "image_path", "raw_image_path", "model_image_path",
     "title", "brand", "gender", "category", "article_type", "colour", "price", "initial_price",
     "currency", "on_sale", "discount_pct", "is_preowned", "stock", "label", "merchant_id",
-    "description", "attributes", "year",
+    "description", "attributes", "year", "season", "usage",
 ]
 
 
