@@ -82,3 +82,28 @@ def test_match_confidence_rewards_standing_out(tmp_path, monkeypatch):
     assert m.tier(0.85).startswith("Very likely")
     assert m.tier(0.6).startswith("Possibly")
     assert m.tier(0.2).startswith("No confident")
+
+
+def test_title_model_prefers_specific_names_and_folds_accents():
+    from silhouette_vision.named_models import NamedModel, title_model
+
+    models = [NamedModel("Louis Vuitton", "bag", "Speedy", ()),
+              NamedModel("Louis Vuitton", "bag", "Nano Speedy", ()),
+              NamedModel("Louis Vuitton", "bag", "Pochette Félicie", ("Felicie",)),
+              NamedModel("Chanel", "bag", "Boy", ())]
+    assert title_model(models, "Louis Vuitton", "Nano Speedy monogram bag").name == "Nano Speedy"
+    assert title_model(models, "Louis Vuitton", "Pochette Felicie chain wallet").name == "Pochette Félicie"
+    assert title_model(models, "Louis Vuitton", "Speedy 30 hand bag").name == "Speedy"
+    assert title_model(models, "Chanel", "Boyfriend jeans") is None  # whole words only
+    assert title_model(models, "Chanel", "Speedy bag") is None  # other brand's model
+
+
+def test_gated_scores_only_compare_models_of_the_photos_item_type():
+    from silhouette_vision.named_models import NamedModel, gated_scores
+
+    models = [NamedModel("Miu Miu", "bag", "Arcadie", ()), NamedModel("Dior", "shoes", "J'Adior", ())]
+    kinds, kind_vecs = ["bag", "shoes"], np.eye(2)
+    prompts = np.array([[0.2, 0.9], [0.1, 0.8]])  # the bag prompt scores higher on a shoe photo
+    shoe_photo = np.array([[0.0, 1.0]])
+    s = gated_scores(shoe_photo, prompts, models, kinds, kind_vecs)[0]
+    assert s.argmax() == 1 and s[0] == -1.0

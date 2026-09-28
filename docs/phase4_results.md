@@ -59,6 +59,48 @@ The detector's labels are no longer shown: it called a denim tote "skirt" at 96%
 type classifier called a small crop of a chain bag "Bangle". Items appear as thumbnails
 ("Item 1", "Item 2"); after picking, "What we see" describes the item with confidences.
 
+## 4.3 Named-model recognition (scripts/07_named_models.py, src/silhouette_vision/named_models.py)
+Reported from the app: a Louis Vuitton Pochette Félicie photo (a current best-seller) got "no
+confident exact match". Diagnosis: retrieval was fine (all top-10 were small LV monogram
+pochettes), but the 2019 catalog has 767 LV items and **no Félicie**. Exact-product search can only
+find what is stocked; the model name can be recognised regardless.
+
+**Method:** zero-shot. The photo embedding is compared with text prompts ("a photo of the Louis
+Vuitton Pochette Félicie bag", "Louis Vuitton Pochette Félicie", averaged) for 161 models across 21
+brands in `configs/iconic_models.yml`. The item type (bag / shoes / belt / coat) is decided first
+and only models of that type compete. A calibrator on [top score, gap to 2nd] gives P(correct).
+
+**Evaluation:** 2,892 Farfetch photos whose titles name one listed model of their brand (93
+distinct models) and 6,000 bags/shoes/accessories from unlisted brands, which should be rejected.
+Calibrator fitted on even-indexed items, evaluated on odd-indexed ones.
+
+| | |
+|---|---|
+| Top-1 / top-3 model accuracy | 92.0% / 98.0% |
+| Nearest catalog photo's model name instead (LV subset) | 88.4% vs 93.7% zero-shot |
+
+| Name a model when P ≥ | Precision | Listed-model photos named | False alarm, unlisted brands |
+|---|---|---|---|
+| 0.5 | 91.4% | 90.1% | 1.8% |
+| 0.8 | 96.0% | 67.1% | 0.3% |
+| 0.9 | 97.1% | 40.8% | 0.1% |
+
+Per brand top-1: 83–100% for most brands; weakest Bottega Veneta 77% (Pouch/Knot vs Andiamo),
+Valentino 87% (Rockstud vs Roman Stud). Celine has only 3 test photos (all wrong); too few to judge.
+
+**Internet photos:** the Félicie screenshot is named at **93%**; the 10 other test photos (dresses,
+jeans, sneakers, a denim tote...) score ≤ 6% except red T-bar pumps at 38% (J'Adior), all below
+the 50% claim threshold. Degraded catalog photos (crop, resize, JPEG, brightness): Neverfull,
+Speedy and Birkin each named correctly in 14/15, Baguette 11/15.
+
+**Two bugs found while building it:** (1) listing "Rockstud" as both a bag and pumps split one
+name in two (Valentino 64% → 87% after merging); (2) the catalog spells brands "Christian Dior"
+and "Céline", so Dior had no test photos and would show no listings (fixed with brand aliases).
+
+**In the app:** above the exact-match panel, "Recognised model: Louis Vuitton Pochette Félicie
+(93%)" (≥ 80%; "Probably" at 50–80%), followed by our listings of that model ranked by visual
+similarity, or "Not stocked in our catalog (a 2019 snapshot)", plus a web search link.
+
 ## Next in Phase 4
 "Why it matches": attribute overlap between the query and each result, plus which image regions
 drive the similarity.

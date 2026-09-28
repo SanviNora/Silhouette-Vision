@@ -1,0 +1,62 @@
+# Named luxury models recognised zero-shot by Marqo-FashionSigLIP (src/silhouette_vision/models.py).
+# Exact products are only findable if the catalog stocks them (2019 data); a model name is not.
+# Format: brand -> kind -> [model names]. "Name|alias" lists other spellings (catalog brands, titles).
+Louis Vuitton:
+  bag: [Neverfull, Speedy, Alma, Pochette Félicie|Felicie, Pochette Métis|Metis, OnTheGo|On The Go,
+        Multi Pochette Accessoires|Multi-Pochette, Keepall, Noé|Noe, Palm Springs, Favorite,
+        Pochette Accessoires, Boulogne, Petite Malle, Capucines, Twist, Dauphine, Nano Speedy,
+        Eva, Artsy, Montaigne, Tivoli, Saint Cloud, Bumbag|Bum Bag, Loop, Coussin, Diane, CarryAll]
+  wallet: [Zippy, Sarah, Victorine]
+Chanel:
+  bag: [Classic Flap|Timeless|Classic Double Flap, 2.55|Reissue, Boy, Gabrielle, 19, Deauville,
+        Wallet on Chain|WOC, Vanity Case, Coco Handle, Trendy CC, Diana, Grand Shopping Tote|GST]
+  shoes: [slingback pumps|Slingback, Ballerina flats|ballerina]
+Hermès:
+  bag: [Birkin, Kelly, Constance, Evelyne, Picotin, Lindy, Garden Party, Herbag, Bolide, Jypsiere,
+        Kelly Pochette]
+  belt: [H belt|H buckle]
+  shoes: [Oran sandals|Oran]
+Dior|Christian Dior:
+  bag: [Lady Dior, Saddle, Book Tote, Bobby, 30 Montaigne, Caro, Diorama, Diorissimo]
+  shoes: [J'Adior slingback|J'Adior]
+Gucci:
+  bag: [GG Marmont|Marmont, Jackie, Dionysus, Horsebit 1955, Ophidia, Soho Disco|Disco,
+        Sylvie, Bamboo, Padlock, Jumbo GG]
+  shoes: [Horsebit loafers|Horsebit loafer, Princetown, Ace sneakers|Ace]
+  belt: [GG belt|Double G]
+Prada:
+  bag: [Re-Edition|Re-Nylon, Galleria, Cleo, Cahier, Sidonie, Double bag]
+Fendi:
+  bag: [Baguette, Peekaboo, Kan I, First, Mon Trésor|Mon Tresor, By The Way, Sunshine]
+Saint Laurent:
+  bag: [Loulou, Sac de Jour, Kate, Niki, Le 5 à 7, Sunset, Envelope, Solferino, Icare, Monogram College|College]
+Bottega Veneta:
+  bag: [Jodie, Cassette, The Pouch|Pouch, Arco, Andiamo, Knot, Veneta hobo|Veneta]
+Celine|Céline:
+  bag: [Triomphe, Luggage, Belt bag, Classic Box|Box, Ava, Sangle, 16]
+Goyard:
+  bag: [Saint Louis|St Louis, Anjou, Artois, Belvedere]
+Loewe:
+  bag: [Puzzle, Flamenco, Hammock, Gate, Basket]
+Balenciaga:
+  bag: [City|Classic City, Le Cagole|Cagole, Hourglass, Everyday tote|Everyday]
+  shoes: [Triple S, Speed trainers|Speed]
+Chloé:
+  bag: [Marcie, Faye, Drew, Woody tote|Woody, Tess, Nile, Paddington]
+Miu Miu:
+  bag: [Wander, Matelassé|Matelasse, Arcadie]
+Givenchy:
+  bag: [Antigona, Pandora, Nightingale, GV3]
+Valentino:
+  bag: [Rockstud, Roman Stud, VSling|V Sling]
+Burberry:
+  bag: [TB bag, Lola, Pocket bag]
+  outerwear: [Kensington trench|trench coat]
+Christian Louboutin:
+  shoes: [So Kate, Pigalle, Kate pumps]
+Jimmy Choo:
+  bag: [Bon Bon, Varenne]
+Salvatore Ferragamo:
+  shoes: [Vara pumps|Vara]
+Alexander McQueen:
+  shoes: [Oversized sneakers|oversized sneaker]
