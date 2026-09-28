@@ -1,0 +1,42 @@
+{
+  "visuelle2": {
+    "source": "MEGA link from HumaticsLab Google Form",
+    "file": "data/raw/visuelle2/visuelle2.zip",
+    "bytes": 2233681956,
+    "sha256": "fd29a4bfbcb58ff30202d7037447f4024ee4df1147579d08274d19509a426725",
+    "downloaded": "2026-09-27",
+    "license": "CC BY-NC-SA 4.0"
+  },
+  "lookbench": {
+    "source": "huggingface.co/datasets/srpone/look-bench",
+    "version": "v20251201",
+    "path": "data/raw/lookbench",
+    "downloaded": "2026-09-27",
+    "license": "Apache-2.0"
+  },
+  "fashion_product_images": {
+    "source": "kaggle datasets download paramaggarwal/fashion-product-images-dataset",
+    "zip_bytes": 24771215740,
+    "zip_sha256": "32407d023d302aa0fe22a6add365418ef24a3800c1a0d39f4bd542c6a53440cb",
+    "note": "zip contains the dataset twice; only fashion-dataset/{images,styles,images.csv,styles.csv} extracted",
+    "path": "data/raw/fashion_product_images/fashion-dataset",
+    "images": 44441,
+    "style_jsons": 44446,
+    "styles_csv_rows_parsed": 44424,
+    "downloaded": "2026-09-27",
+    "license": "MIT"
+  },
+  "farfetch_listings": {
+    "source": "kaggle datasets download alvations/farfetch-listings",
+    "zip_bytes": 3809917476,
+    "zip_sha256": "d6cefdbc2c28428952b6d904f3693e834cf473b78b86624cb18a26aa4f36feee",
+    "path": "data/raw/farfetch",
+    "csv_rows": 188817,
+    "unique_products": 187616,
+    "cutout_images": 187620,
+    "model_images": 187620,
+    "currency": "SGD",
+    "downloaded": "2026-09-27",
+    "license": "unknown (scraped)"
+  }
+}

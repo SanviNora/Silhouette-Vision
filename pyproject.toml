@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "silhouette-vision"
+version = "0.1.0"
+description = "Fashion product intelligence and visual search with multimodal embeddings."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cryptography>=43.0",
+    "duckdb>=1.0",
+    "fastapi>=0.115",
+    "hdbscan>=0.8",
+    "huggingface-hub>=0.25",
+    "imagehash>=4.3",
+    "kaggle>=1.6",
+    "lightgbm>=4.5",
+    "open-clip-torch>=2.26",
+    "pandas>=2.2",
+    "pandera>=0.20",
+    "pillow>=10.4",
+    "plotly>=5.24",
+    "pyarrow>=16.0",
+    "python-multipart>=0.0.9",
+    "pyyaml>=6.0",
+    "requests>=2.32",
+    "scikit-learn>=1.5",
+    "shap>=0.46",
+    "streamlit>=1.40",
+    "torch>=2.4",
+    "transformers>=4.44",
+    "umap-learn>=0.5",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

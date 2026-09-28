@@ -1,0 +1,77 @@
+project:
+  name: Silhouette Vision
+  type: portfolio simulation
+  affiliated_brand: none
+
+# Approved 2026-09-27: four core sources + H&M as backup.
+# Dropped: Fashionpedia (street photos, not product shots; detailed attributes come from the
+# Myntra style JSONs + zero-shot prompts instead) and Branded Bottoms Resale (5k trousers-only listings; resale is out of scope).
+
+sources:
+  - id: fashion_product_images
+    name: Fashion Product Images Dataset (full; 1080x1440 / 1800x2400 images)
+    tier: core
+    role: attribute labels, retrieval benchmark, public demo gallery
+    status: downloaded
+    observed: true
+    license: MIT
+    url: https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-dataset
+    supports: [attribute classification, visual similarity benchmark, clustering, public demo]
+    limitations:
+      - mass-market Indian e-commerce (Myntra), 2011-2016 heavy
+      - the "small" variant is 60x80 px; do not use it
+      - no sales or demand data
+
+  - id: farfetch_listings
+    name: Farfetch Listings (July 2019 scrape)
+    tier: core
+    role: real luxury catalog; brand, price, markdown, stock
+    status: downloaded
+    observed: true
+    license: unknown (scraped); analysis and private demo only, no redistribution
+    url: https://www.kaggle.com/datasets/alvations/farfetch-listings
+    supports: [luxury search gallery, price-tier analysis, markdown analysis, brand clustering]
+    limitations:
+      - single snapshot; no sales history
+      - 300x400 px images
+      - prices in SGD (Singapore site); women + unisex only
+      - no category column; derive from shortDescription
+
+  - id: lookbench
+    name: LookBench v20251201
+    tier: core
+    role: model selection; photo-to-product retrieval evaluation
+    status: downloaded
+    observed: true
+    license: Apache-2.0
+    url: https://huggingface.co/datasets/srpone/look-bench
+    supports: [backbone selection, street-photo query evaluation, leaderboard comparison]
+    limitations:
+      - benchmark authors also publish two of the candidate models
+
+  - id: visuelle2
+    name: Visuelle 2.0 (Nuna Lie)
+    tier: core
+    role: new-product demand forecasting from images; cold-start recommendation
+    status: downloaded
+    observed: true
+    license: CC BY-NC-SA 4.0; cite Skenderi et al., CVPRW 2022
+    url: https://humaticslab.github.io/forecasting/visuelle
+    supports: [cold-start demand, demand inheritance, attribute-demand drivers, customer baskets]
+    limitations:
+      - Italian fast fashion, womenswear only
+      - coarse labels (10 colours, 27 categories)
+      - prices normalized
+
+  - id: hm_personalized_fashion
+    name: H&M Personalized Fashion Recommendations
+    tier: backup
+    role: large-scale cold-start demand and recommendation; product text descriptions
+    status: tables profiled from mirror; official download not needed unless used
+    observed: true
+    license: Kaggle competition rules; non-commercial
+    url: https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations
+    supports: [cold-start at scale, MAP@12 recommendation, text descriptions]
+    limitations:
+      - mass-market; prices normalized
+      - full image set ~30 GB; subset only

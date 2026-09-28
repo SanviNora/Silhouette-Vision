@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+*.egg-info/
+.DS_Store
+
+# Data and model artifacts are generated locally and are not committed.
+data/raw/*
+data/interim/*
+data/processed/*
+artifacts/embeddings/*
+artifacts/models/*
+!**/.gitkeep
+!data/raw/_manifest.json
+
+# Local analytical databases and secrets.
+*.duckdb
+.env
+kaggle.json
+
+# Run logs and local tooling caches.
+artifacts/logs/
+artifacts/reports/*.json

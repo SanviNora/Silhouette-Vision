@@ -1,0 +1,42 @@
+seed: 42
+device: mps  # falls back to cuda/cpu if unavailable
+
+paths:
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  models: artifacts/models
+  reports: artifacts/reports
+
+catalog:
+  myntra_thumb_side: 512  # Myntra originals are up to 1800x2400
+  sources: [myntra, farfetch]
+
+embed:
+  primary: marqo_fashion_siglip  # image + text, 768-d
+  candidates:  # compared on LookBench in Phase 2
+    - marqo_fashion_siglip
+    - gr_lite  # DINOv3 ViT-L/16, image-only, 1024-d
+    - gr_lite_norope
+  batch_size: 64
+  chunk_size: 4096
+  storage_dtype: float16
+
+retrieval:
+  search: exact  # numpy dot product over normalized embeddings
+  top_k: [1, 5, 10]
+  text_refine_weight: 0.3
+
+attributes:
+  myntra_targets: [article_type, colour, gender, season, usage]
+  myntra_json_attributes: [Pattern, Fabric, Sleeve Length, Fit, Neck, Material]
+
+clustering:
+  umap_components: 15
+  hdbscan_min_cluster_size: 50
+
+cold_start:
+  dataset: visuelle2
+  horizon_weeks: 12
+  knn_k: 20

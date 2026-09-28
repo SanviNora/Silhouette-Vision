@@ -1,0 +1,65 @@
+# Shared coarse categories across sources.
+categories: [top, bottoms, dress, outerwear, shoes, bag, jewellery, accessory, other]
+
+# Myntra: articleType -> category. Anything not listed falls back to subcategory_map, then "other".
+myntra:
+  article_type_map:
+    Dresses: dress
+    Jumpsuit: dress
+    Rompers: dress
+    Lehenga Choli: dress
+    Suits: outerwear
+    Swimwear: other
+    Bath Robe: other
+    Robe: other
+    Jackets: outerwear
+    Blazers: outerwear
+    Rain Jacket: outerwear
+    Nehru Jackets: outerwear
+    Waistcoat: outerwear
+    Shrug: outerwear
+    Sweaters: top
+    Sweatshirts: top
+    Wallets: bag
+    Clutches: bag
+    Belts: accessory
+  subcategory_map:
+    Topwear: top
+    Bottomwear: bottoms
+    Dress: dress
+    Shoes: shoes
+    Sandal: shoes
+    Flip Flops: shoes
+    Bags: bag
+    Jewellery: jewellery
+    Watches: accessory
+    Eyewear: accessory
+    Belts: accessory
+    Headwear: accessory
+    Scarves: accessory
+    Ties: accessory
+    Gloves: accessory
+    Mufflers: accessory
+    Stoles: accessory
+    Cufflinks: accessory
+    Accessories: accessory
+    Wallets: bag
+    Socks: accessory
+    Shoe Accessories: accessory
+    Umbrellas: accessory
+    Saree: dress
+  # Non-fashion master categories are excluded from the catalog.
+  exclude_master_categories: [Personal Care, Free Items, Home, Sporting Goods]
+
+# Farfetch has no category column: first matching rule on the lower-cased title wins,
+# so more specific rules (e.g. "shirt dress") come first.
+farfetch_title_rules:
+  - [dress, "dress|gown|jumpsuit|playsuit|kaftan"]
+  - [outerwear, "jacket|coat|blazer|parka|trench|gilet|cape|poncho|bomber|anorak|suit"]
+  - [bag, "bag|tote|clutch|backpack|wallet|purse|pouch|satchel|crossbody|cardholder|card holder|shopper|bucket"]
+  - [shoes, "sneaker|boot|pump|sandal|loafer|mule|heel|espadrille|ballerina|slipper|slide|derby|oxford|flats|stiletto|trainers|wedge"]
+  - [jewellery, "ring|necklace|earring|bracelet|pendant|brooch|choker|cuff|anklet|charm"]
+  - [accessory, "sunglasses|glasses|belt|scarf|hat|cap|beanie|gloves|watch|hair|headband|keyring|key ring|tie|socks|umbrella"]
+  - [bottoms, "trousers|jeans|skirt|shorts|pants|leggings|culottes|joggers|track pants"]
+  - [top, "top|blouse|shirt|t-shirt|tee|sweater|jumper|cardigan|hoodie|sweatshirt|tank|camisole|bodysuit|polo|knit|vest|pullover"]
+  - [other, "bikini|swimsuit|bra|briefs|lingerie|robe|pyjama|swim"]
