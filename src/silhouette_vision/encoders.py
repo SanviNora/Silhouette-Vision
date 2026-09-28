@@ -35,21 +35,21 @@ class _Base:
         return self.embed_pixels(torch.stack([self.preprocess(im) for im in images]))
 
 
-class MarqoFashionSigLIP(_Base):
-    """Marqo-FashionSigLIP (ViT-B/16 SigLIP): shared image-text space, 768-d."""
+class OpenCLIPEncoder(_Base):
+    """Any OpenCLIP model: shared image-text space."""
 
-    name = "marqo_fashion_siglip"
-    dim = 768
     has_text = True
-    hub_id = "hf-hub:Marqo/marqo-fashionSigLIP"
 
-    def __init__(self, device: str | None = None):
+    def __init__(self, name: str, arch: str, pretrained: str | None = None,
+                 device: str | None = None):
         import open_clip
 
+        self.name = name
         self.device = device or default_device()
-        model, _, self.transform = open_clip.create_model_and_transforms(self.hub_id)
+        model, _, self.transform = open_clip.create_model_and_transforms(arch, pretrained=pretrained)
         self.model = model.to(self.device).eval()
-        self.tokenizer = open_clip.get_tokenizer(self.hub_id)
+        self.tokenizer = open_clip.get_tokenizer(arch)
+        self.dim = self.model.visual.output_dim
 
     def preprocess(self, image: Image.Image) -> torch.Tensor:
         return self.transform(image)
@@ -65,12 +65,21 @@ class MarqoFashionSigLIP(_Base):
         return self.model.encode_text(tokens, normalize=True).float().cpu().numpy()
 
 
+class MarqoFashionSigLIP(OpenCLIPEncoder):
+    """Marqo-FashionSigLIP (ViT-B/16 SigLIP fine-tuned on fashion): 768-d."""
+
+    def __init__(self, device: str | None = None):
+        super().__init__("marqo_fashion_siglip", "hf-hub:Marqo/marqo-fashionSigLIP", device=device)
+
+
 class GRLite(_Base):
     """GR-Lite (DINOv3 ViT-L/16 fine-tuned for fashion retrieval): image-only, 1024-d.
 
     The model's own trust_remote_code loader fails on transformers 5, and its reference code
     omits DINOv3's RoPE. The weights load one-to-one into transformers' DINOv3ViTModel, so we
     use that class; `rope=False` reproduces the reference code (identity rotation).
+    Measured on LookBench (200 studio queries): RoPE on 60.5 / 85.0 / 91.0 R@1/5/10 vs
+    56.5 / 76.0 / 79.5 with it off, so RoPE is the default.
     """
 
     dim = 1024
@@ -134,6 +143,8 @@ class GRLite(_Base):
 
 ENCODERS = {
     "marqo_fashion_siglip": MarqoFashionSigLIP,
+    # Generic baseline (no fashion training), as in the LookBench paper's CLIP-B/16 row.
+    "clip_vit_b16": lambda device=None: OpenCLIPEncoder("clip_vit_b16", "ViT-B-16", "openai", device),
     "gr_lite": GRLite,
     "gr_lite_norope": lambda device=None: GRLite(device, rope=False),
 }
