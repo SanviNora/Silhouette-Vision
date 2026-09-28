@@ -49,7 +49,7 @@ class OpenCLIPEncoder(_Base):
         model, _, self.transform = open_clip.create_model_and_transforms(arch, pretrained=pretrained)
         self.model = model.to(self.device).eval()
         self.tokenizer = open_clip.get_tokenizer(arch)
-        self.dim = self.model.visual.output_dim
+        self.dim = int(self.embed_texts(["a dress"]).shape[1])  # towers differ in how they expose it
 
     def preprocess(self, image: Image.Image) -> torch.Tensor:
         return self.transform(image)

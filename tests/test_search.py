@@ -18,6 +18,7 @@ def make_engine(n=50, dim=16, seed=0):
         "is_preowned": [i % 7 == 0 for i in range(n)],
     })
     engine.embeddings = emb
+    engine.colour_hists = None
     return engine
 
 
@@ -64,3 +65,30 @@ def test_combine_is_normalized_and_moves_toward_text():
     mixed = SearchEngine.combine(img, txt, text_weight=0.4)
     assert abs(np.linalg.norm(mixed) - 1) < 1e-6
     assert mixed @ txt > img @ txt
+
+
+def with_colours(engine, n_bins=8):
+    """Give every item a one-hot colour histogram: colour = row index mod n_bins."""
+    hists = np.zeros((len(engine.catalog), n_bins), np.float32)
+    hists[np.arange(len(hists)), np.arange(len(hists)) % n_bins] = 1
+    engine.colour_hists = hists
+    return engine
+
+
+def test_colour_rerank_promotes_matching_colour():
+    engine = with_colours(make_engine())
+    query = engine.item_vector("it_0")
+    plain = engine.search(query, k=10, exclude=["it_0"])
+    target = np.eye(8, dtype=np.float32)[3]  # ask for colour 3
+    coloured = engine.search(query, k=10, exclude=["it_0"], query_colour=target, colour_weight=5.0)
+    colour_of = lambda ids: [int(i.split("_")[1]) % 8 for i in ids]
+    assert colour_of(coloured.item_id).count(3) > colour_of(plain.item_id).count(3)
+    assert (np.diff(coloured.score.values) <= 1e-6).all()
+
+
+def test_colour_off_changes_nothing():
+    engine = with_colours(make_engine())
+    q = engine.item_vector("it_2")
+    a = engine.search(q, k=10)
+    b = engine.search(q, k=10, query_colour=np.eye(8, dtype=np.float32)[1], colour_weight=0.0)
+    assert a.item_id.tolist() == b.item_id.tolist()

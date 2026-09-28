@@ -51,6 +51,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 python scripts/01_build_catalog.py          # needs the raw data, see docs/data_guide.md
 python scripts/02_embed.py --model marqo_fashion_siglip
+python scripts/03_colour_features.py        # optional: enables "Match colour"
 streamlit run app/ui.py
 ```
 
@@ -58,4 +59,4 @@ streamlit run app/ui.py
 
 **Phase 1 complete:** visual + text search over 229,522 products; ~40 ms per query on an M4.
 Results and failure analysis: [docs/phase1_results.md](docs/phase1_results.md).
-Next: Phase 2, quantitative evaluation on LookBench.
+**Phase 2 complete:** LookBench results reproduce the paper; Marqo + GR-Lite blend is the best retriever; colour-aware re-ranking shipped. See [docs/phase2_results.md](docs/phase2_results.md).

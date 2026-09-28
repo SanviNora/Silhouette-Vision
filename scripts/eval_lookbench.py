@@ -70,20 +70,36 @@ def _batches(blobs, transform, batch_size, pool):
             yield pending.result()
 
 
-def cached_embed(encoder, name: str, blobs: list[bytes], batch_size=32, threads=6) -> np.ndarray:
+def cached_embed(encoder, name: str, blobs: list[bytes], batch_size=32, threads=6,
+                 chunk=4096) -> np.ndarray:
+    """Embed with a cache; long runs are checkpointed every `chunk` images, so a crash or the
+    laptop sleeping only loses the current chunk (the overnight GR-Lite run had no such safety)."""
     cache = path("embeddings") / "lookbench" / encoder.name / f"{name}.npy"
     if cache.exists():
         emb = np.load(cache)
         if len(emb) == len(blobs):
             return emb.astype(np.float32)
+    parts_dir = cache.with_suffix(".parts")
+    parts_dir.mkdir(parents=True, exist_ok=True)
+    parts = []
     # Threads, not DataLoader workers: macOS worker processes would each get a pickled copy
     # of every image's bytes (~2 GB for the distractors) and push the machine into swap.
     with ThreadPoolExecutor(threads) as pool:
-        emb = np.concatenate([encoder.embed_pixels(b)
-                              for b in _batches(blobs, encoder.transform, batch_size, pool)])
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    np.save(cache, emb.astype(np.float16))
-    return emb
+        for c, start in enumerate(range(0, len(blobs), chunk)):
+            part = parts_dir / f"{c:04d}_{len(blobs)}.npy"
+            if not part.exists():
+                chunk_blobs = blobs[start : start + chunk]
+                emb = np.concatenate([encoder.embed_pixels(b) for b in
+                                      _batches(chunk_blobs, encoder.transform, batch_size, pool)])
+                np.save(part, emb.astype(np.float16))
+                print(f"    {name}: {min(start + chunk, len(blobs))}/{len(blobs)}", flush=True)
+            parts.append(np.load(part))
+    emb = np.concatenate(parts)
+    np.save(cache, emb)
+    for part in parts_dir.glob("*.npy"):
+        part.unlink()
+    parts_dir.rmdir()
+    return emb.astype(np.float32)
 
 
 def recall_at_k(q_emb, q_meta, g_emb, g_meta, ks=(1, 5, 10)) -> dict[str, float]:

@@ -55,7 +55,7 @@ def sheet(query: Image.Image, results, title: str) -> Image.Image:
         price = "" if row.price != row.price else f"{CURRENCY.get(row.currency, '')}{row.price:,.0f}"
         tag = f"{row.source}{' · pre-owned' if row.is_preowned else ''}"
         lines = [f"{(row.brand or '')[:28]}", f"{(row.title or '')[:34]}", f"{price} · {tag}",
-                 f"sim {row.score:.3f}"]
+                 f"sim {row.similarity:.3f}"]
         for j, line in enumerate(lines):
             draw.text((x, y + TILE_H + 4 + j * 15), line, fill="black", font=small)
     return out
@@ -66,6 +66,7 @@ def main():
     ap.add_argument("folder")
     ap.add_argument("--k", type=int, default=8)
     ap.add_argument("--source", choices=["myntra", "farfetch"], default=None)
+    ap.add_argument("--colour", action="store_true", help="colour-aware re-ranking")
     args = ap.parse_args()
 
     engine = SearchEngine()
@@ -81,11 +82,12 @@ def main():
         t0 = time.perf_counter()
         vec = engine.image_vector(query)
         t1 = time.perf_counter()
-        results = engine.search(vec, args.k, filters)
+        colour = engine.image_colour(query) if args.colour else None
+        results = engine.search(vec, args.k, filters, query_colour=colour)
         t2 = time.perf_counter()
         embed_ms.append((t1 - t0) * 1000)
         search_ms.append((t2 - t1) * 1000)
-        suffix = f"_{args.source}" if args.source else ""
+        suffix = (f"_{args.source}" if args.source else "") + ("_colour" if args.colour else "")
         name = f"query_{i:02d}{suffix}.jpg"
         sheet(query, results, f"Query {i}: {photo.name}").save(out_dir / name, quality=88)
         print(f"{name}: top = {results.brand.iloc[0]} | {results.title.iloc[0]} "

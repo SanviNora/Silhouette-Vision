@@ -12,7 +12,9 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+from silhouette_vision import colour
 from silhouette_vision.catalog import load_catalog
+from silhouette_vision.config import path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.encoders import load_encoder
 
@@ -53,6 +55,21 @@ class SearchEngine:
         self.catalog = load_catalog()
         self.embeddings = load_embeddings(model, self.catalog)
         self.encoder = load_encoder(model, device=device)
+        self.colour_hists = self._load_colour_hists()
+
+    def _load_colour_hists(self) -> np.ndarray | None:
+        """Colour histograms from scripts/03_colour_features.py; colour re-ranking is off without them."""
+        folder = path("embeddings") / "colour"
+        if not (folder / "hists.npy").exists():
+            return None
+        ids = pd.read_parquet(folder / "item_ids.parquet").item_id.values
+        if len(ids) != len(self.catalog) or not (ids == self.catalog.item_id.values).all():
+            return None
+        return np.load(folder / "hists.npy").astype(np.float32)
+
+    @property
+    def has_colour(self) -> bool:
+        return self.colour_hists is not None
 
     # --- query vectors -------------------------------------------------------------------
     def image_vector(self, image: Image.Image) -> np.ndarray:
@@ -65,6 +82,13 @@ class SearchEngine:
         return self.embeddings[self._row(item_id)]
 
     @staticmethod
+    def image_colour(image: Image.Image) -> np.ndarray:
+        return colour.colour_hist(image)
+
+    def item_colour(self, item_id: str) -> np.ndarray | None:
+        return None if self.colour_hists is None else self.colour_hists[self._row(item_id)]
+
+    @staticmethod
     def combine(image_vec: np.ndarray, text_vec: np.ndarray, text_weight: float = 0.3) -> np.ndarray:
         """Blend an image query with a text refinement ("like this, but in red")."""
         v = (1 - text_weight) * image_vec + text_weight * text_vec
@@ -72,15 +96,25 @@ class SearchEngine:
 
     # --- search --------------------------------------------------------------------------
     def search(self, query: np.ndarray, k: int = 12, filters: Filters | None = None,
-               exclude: list[str] | None = None) -> pd.DataFrame:
+               exclude: list[str] | None = None, query_colour: np.ndarray | None = None,
+               colour_weight: float = colour.DEFAULT_WEIGHT, shortlist: int = 50) -> pd.DataFrame:
+        """Top-k by cosine similarity. With `query_colour`, the top `shortlist` items are
+        re-scored as cosine + colour_weight * colour intersection (see colour.py)."""
         mask = filters.mask(self.catalog) if filters else None
         if exclude:
             mask = np.ones(len(self.catalog), bool) if mask is None else mask.copy()
             mask[[self._row(i) for i in exclude]] = False
         scores = self.embeddings @ query.astype(np.float32)
-        rows = top_k(scores, k, mask)
+        use_colour = query_colour is not None and self.colour_hists is not None and colour_weight > 0
+        rows = top_k(scores, max(k, shortlist) if use_colour else k, mask)
+        final = scores[rows]
+        if use_colour:
+            final = final + colour_weight * colour.intersection(query_colour, self.colour_hists[rows])
+            order = np.argsort(-final)[:k]
+            rows, final = rows[order], final[order]
         result = self.catalog.iloc[rows].copy()
-        result.insert(0, "score", scores[rows])
+        result.insert(0, "score", final)
+        result.insert(1, "similarity", scores[rows])
         return result.reset_index(drop=True)
 
     def _row(self, item_id: str) -> int:
