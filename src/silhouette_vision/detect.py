@@ -64,6 +64,40 @@ class GarmentDetector:
                 kept.append(d)
         return kept
 
+    def items(self, image: Image.Image, min_score: float = 0.6) -> list[Detection]:
+        """Items worth offering the user as separate searches.
+
+        Filters on top of `detect`, from false positives seen in the app:
+          - scores below `min_score` (a product-shot bag was called "skirt" at 51%);
+          - garment *parts* inside a one-piece: the lower half of a dress was also reported as
+            "skirt" (52%) while the dress itself scored 99%;
+          - a lone box covering most of the image: a product shot, where cropping changes nothing.
+        """
+        dets = [d for d in self.detect(image) if d.score >= min_score]
+        one_piece = [d for d in dets if d.label in ONE_PIECE]
+        dets = [d for d in dets
+                if not (d.label in PARTS_OF_ONE_PIECE
+                        and any(_contained(d.box, o.box) > 0.7 and o.score > d.score for o in one_piece))]
+        if len(dets) == 1 and _area(dets[0].box) / (image.width * image.height) > 0.75:
+            return []
+        return dets
+
+
+ONE_PIECE = {"dress", "jumpsuit"}
+PARTS_OF_ONE_PIECE = {"skirt", "top, t-shirt, sweatshirt", "shirt, blouse", "pants", "shorts",
+                      "sweater", "vest"}
+
+
+def _area(box) -> float:
+    return max(0.0, box[2] - box[0]) * max(0.0, box[3] - box[1])
+
+
+def _contained(inner, outer) -> float:
+    """Share of `inner`'s area that lies inside `outer`."""
+    ix = max(0.0, min(inner[2], outer[2]) - max(inner[0], outer[0]))
+    iy = max(0.0, min(inner[3], outer[3]) - max(inner[1], outer[1]))
+    return ix * iy / _area(inner) if _area(inner) else 0.0
+
 
 def _iou(a, b) -> float:
     ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))

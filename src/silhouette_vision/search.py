@@ -153,6 +153,13 @@ class SearchEngine:
         result.insert(1, "similarity", scores[rows])
         return result.reset_index(drop=True)
 
+    def best_match(self, query: np.ndarray, filters: Filters | None = None,
+                   precise_query: np.ndarray | None = None) -> tuple[pd.Series, np.ndarray]:
+        """Top result by pure similarity (no colour re-ranking) and its top-5 scores, for the
+        exact-match confidence, which was calibrated on pure similarity."""
+        top = self.search(query, k=5, filters=filters, precise_query=precise_query)
+        return top.iloc[0], top.similarity.values
+
     def _row(self, item_id: str) -> int:
         if not hasattr(self, "_row_of"):
             self._row_of = pd.Series(np.arange(len(self.catalog)), index=self.catalog.item_id)

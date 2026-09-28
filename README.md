@@ -54,6 +54,7 @@ python scripts/02_embed.py --model marqo_fashion_siglip
 python scripts/03_colour_features.py        # optional: enables "Match colour"
 python scripts/04_attributes.py             # attribute models + catalog enrichment
 python scripts/05_style_clusters.py         # style clusters + map
+python scripts/06_match_confidence.py       # exact-match confidence calibration
 streamlit run app/ui.py
 ```
 
@@ -64,3 +65,5 @@ Results and failure analysis: [docs/phase1_results.md](docs/phase1_results.md).
 **Phase 2 complete:** LookBench results reproduce the paper; Marqo + GR-Lite blend is the best retriever; colour-aware re-ranking shipped. See [docs/phase2_results.md](docs/phase2_results.md).
 
 **Phase 3 complete:** attribute prediction and catalog enrichment, luxury style clusters with a style map, garment detection with a user-picked crop. See [docs/phase3_results.md](docs/phase3_results.md).
+
+**Phase 4 in progress:** calibrated exact-match confidence ("Very likely the exact product") and garment-picker fixes. See [docs/phase4_results.md](docs/phase4_results.md).

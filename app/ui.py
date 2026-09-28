@@ -44,6 +44,38 @@ def get_attributes():
         return None, None
 
 
+@st.cache_resource(show_spinner=False)
+def get_match_confidence():
+    try:
+        from silhouette_vision.match import MatchConfidence
+
+        return MatchConfidence()
+    except FileNotFoundError:
+        return None
+
+
+def show_best_match(engine: SearchEngine, query, filters, precise_query):
+    """Highlight the single closest product with a calibrated exact-match likelihood."""
+    matcher = get_match_confidence()
+    if matcher is None:
+        return
+    row, top_scores = engine.best_match(query, filters, precise_query)
+    prob = matcher.probability(top_scores, "precise" if precise_query is not None else "marqo")
+    tier = matcher.tier(prob)
+    with st.container(border=True):
+        left, right = st.columns([1, 4])
+        left.image(str(ROOT / row.image_path), width="stretch")
+        right.markdown(f"#### {tier}")
+        right.markdown(f"**{row.brand or ''}** — {row.title}  \n{price_text(row)} · "
+                       f"{SOURCE_LABEL[row.source]}{' · Pre-owned' if row.is_preowned else ''}")
+        right.metric("Exact-match likelihood", f"{prob:.0%}",
+                     help="Calibrated on 2,345 benchmark photos with known products: when this "
+                          "says 90%+, the product was the exact one 91% of the time (86% at 80%+). "
+                          "Based on how strongly the best result stands out from the next ones, not "
+                          "on raw similarity alone.")
+        right.caption(f"Visual similarity {row.similarity:.2f} (cosine; 1.00 = identical image)")
+
+
 @st.cache_data(show_spinner=False)
 def get_style_map():
     file = ROOT / "data/processed/style_clusters.parquet"
@@ -118,12 +150,16 @@ def show_attributes(engine: SearchEngine, image):
 
 def pick_garment(image):
     """Let the user choose the whole photo or one detected item; returns the image to search with."""
-    detections = get_detector().detect(image)
+    detections = get_detector().items(image)
     if not detections:
         st.image(image, width=180, caption="Your photo (no single garment detected)")
         return image
     crops = [d.crop(image) for d in detections[:5]]
-    options = ["Whole photo"] + [f"{d.name} ({d.score:.0%})" for d in detections[:5]]
+    # Items are shown as thumbnails without a type label: the detector (trained on photos of
+    # people) localises well but mislabels product shots (a denim tote -> "skirt" at 96%), and
+    # our type classifier mislabels small crops (a chain bag held in hand -> "Bangle"). Once an
+    # item is picked, "What we see" describes it with confidences.
+    options = ["Whole photo"] + [f"Item {i + 1}" for i in range(len(crops))]
     cols = st.columns(len(options))
     cols[0].image(image, caption="Whole photo", width="stretch")
     for col, crop, label in zip(cols[1:], crops, options[1:], strict=True):
@@ -218,6 +254,8 @@ def main():
             if precise:
                 with st.spinner("Precise match…"):
                     precise_query = engine.precise_vector(image)
+            show_best_match(engine, query, filters, precise_query)
+            st.markdown("**Similar products**")
             show_results(engine.search(query, k, filters, query_colour=colour,
                                        precise_query=precise_query), "img")
 

@@ -50,3 +50,35 @@ def test_item_tags_hide_untrusted_attributes_on_farfetch():
                      "conf_pattern": 0.8, "pred_sleeve_length": "Long Sleeves",
                      "conf_sleeve_length": 0.3, "pred_neck": None})
     assert item_tags(row, "farfetch") == ["Black", "Printed"]  # low-confidence sleeves dropped
+
+
+def test_detector_items_drop_parts_inside_dress_and_whole_image_boxes():
+    from silhouette_vision.detect import GarmentDetector
+
+    det = GarmentDetector.__new__(GarmentDetector)
+    img = Image.new("RGB", (100, 200))
+    dress = Detection("dress", 0.99, (10, 10, 90, 190))
+    skirt = Detection("skirt", 0.95, (12, 100, 88, 188))  # inside the dress -> a part
+    bag = Detection("bag, wallet", 0.9, (0, 150, 20, 199))  # separate item
+    weak = Detection("belt", 0.55, (30, 90, 70, 100))  # below min_score
+    det.detect = lambda image: [dress, skirt, bag, weak]
+    assert [d.label for d in det.items(img)] == ["dress", "bag, wallet"]
+    det.detect = lambda image: [Detection("skirt", 0.96, (0, 0, 100, 195))]  # product shot
+    assert det.items(img) == []
+
+
+def test_match_confidence_rewards_standing_out(tmp_path, monkeypatch):
+    import json
+
+    from silhouette_vision import match
+
+    params = {"marqo": {"coef": [2.0, 30.0, 10.0], "intercept": -3.0}}
+    (tmp_path / "match_confidence.json").write_text(json.dumps(params))
+    monkeypatch.setattr(match, "path", lambda key: tmp_path)
+    m = match.MatchConfidence()
+    crowded = m.probability(np.array([0.90, 0.89, 0.89, 0.88, 0.88]))
+    standout = m.probability(np.array([0.90, 0.80, 0.78, 0.77, 0.76]))
+    assert standout > crowded
+    assert m.tier(0.85).startswith("Very likely")
+    assert m.tier(0.6).startswith("Possibly")
+    assert m.tier(0.2).startswith("No confident")
