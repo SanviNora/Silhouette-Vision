@@ -56,6 +56,31 @@ class SearchEngine:
         self.embeddings = load_embeddings(model, self.catalog)
         self.encoder = load_encoder(model, device=device)
         self.colour_hists = self._load_colour_hists()
+        self.precise = self._load_precise()
+        self._precise_encoder = None
+
+    # "Precise match": Marqo + GR-Lite blended 50/50 (best on held-out LookBench queries:
+    # exact R@1 55.4 vs 50.7 for Marqo alone, +7.6 on street photos). GR-Lite embeddings exist
+    # only for Myntra (the public gallery), so precise search is restricted to Myntra.
+    PRECISE_MODEL, PRECISE_SOURCE, PRECISE_WEIGHT = "gr_lite", "myntra", 0.5
+
+    def _load_precise(self) -> tuple[np.ndarray, np.ndarray] | None:
+        name = f"{self.PRECISE_MODEL}__{self.PRECISE_SOURCE}"
+        rows = np.flatnonzero(self.catalog.source.values == self.PRECISE_SOURCE)
+        try:
+            emb = load_embeddings(name, self.catalog.iloc[rows].reset_index(drop=True))
+        except (FileNotFoundError, ValueError):
+            return None
+        return rows, emb
+
+    @property
+    def has_precise(self) -> bool:
+        return self.precise is not None
+
+    def precise_vector(self, image: Image.Image) -> np.ndarray:
+        if self._precise_encoder is None:
+            self._precise_encoder = load_encoder(self.PRECISE_MODEL)
+        return self._precise_encoder.embed_images([image])[0]
 
     def _load_colour_hists(self) -> np.ndarray | None:
         """Colour histograms from scripts/03_colour_features.py; colour re-ranking is off without them."""
@@ -97,14 +122,25 @@ class SearchEngine:
     # --- search --------------------------------------------------------------------------
     def search(self, query: np.ndarray, k: int = 12, filters: Filters | None = None,
                exclude: list[str] | None = None, query_colour: np.ndarray | None = None,
-               colour_weight: float = colour.DEFAULT_WEIGHT, shortlist: int = 50) -> pd.DataFrame:
+               colour_weight: float = colour.DEFAULT_WEIGHT, shortlist: int = 50,
+               precise_query: np.ndarray | None = None) -> pd.DataFrame:
         """Top-k by cosine similarity. With `query_colour`, the top `shortlist` items are
-        re-scored as cosine + colour_weight * colour intersection (see colour.py)."""
+        re-scored as cosine + colour_weight * colour intersection (see colour.py). With
+        `precise_query` (a GR-Lite vector), search is limited to Myntra and scores are the
+        Marqo/GR-Lite blend."""
         mask = filters.mask(self.catalog) if filters else None
         if exclude:
             mask = np.ones(len(self.catalog), bool) if mask is None else mask.copy()
             mask[[self._row(i) for i in exclude]] = False
         scores = self.embeddings @ query.astype(np.float32)
+        if precise_query is not None and self.precise is not None:
+            rows, emb = self.precise
+            only = np.zeros(len(self.catalog), bool)
+            only[rows] = True
+            mask = only if mask is None else mask & only
+            w = self.PRECISE_WEIGHT
+            scores = scores.copy()
+            scores[rows] = (1 - w) * scores[rows] + w * (emb @ precise_query.astype(np.float32))
         use_colour = query_colour is not None and self.colour_hists is not None and colour_weight > 0
         rows = top_k(scores, max(k, shortlist) if use_colour else k, mask)
         final = scores[rows]

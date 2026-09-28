@@ -202,6 +202,11 @@ def main():
         upload = st.file_uploader("Upload a product photo", type=["jpg", "jpeg", "png", "webp"])
         refine = st.text_input("Optional: refine with text", placeholder="e.g. in red, leather, cropped")
         weight = st.slider("Text influence", 0.0, 0.8, 0.3, 0.05, disabled=not refine)
+        precise = engine.has_precise and st.toggle(
+            "Precise match (Myntra)",
+            help="Blends Marqo with GR-Lite, a fashion-retrieval model. In testing: +4.7 points "
+                 "exact-match recall overall and +7.6 on street photos. Searches the Myntra "
+                 "catalog only, and is slower (loads a second model on first use).")
         if upload:
             image = pick_garment(load_rgb(upload))
             show_attributes(engine, image)
@@ -209,7 +214,12 @@ def main():
             if refine:
                 query = engine.combine(query, engine.text_vector(refine), weight)
             colour = engine.image_colour(image) if match_colour else None
-            show_results(engine.search(query, k, filters, query_colour=colour), "img")
+            precise_query = None
+            if precise:
+                with st.spinner("Precise match…"):
+                    precise_query = engine.precise_vector(image)
+            show_results(engine.search(query, k, filters, query_colour=colour,
+                                       precise_query=precise_query), "img")
 
     with text_tab:
         text = st.text_input("Describe what you're looking for",

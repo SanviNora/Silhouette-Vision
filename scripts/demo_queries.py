@@ -67,6 +67,7 @@ def main():
     ap.add_argument("--k", type=int, default=8)
     ap.add_argument("--source", choices=["myntra", "farfetch"], default=None)
     ap.add_argument("--colour", action="store_true", help="colour-aware re-ranking")
+    ap.add_argument("--precise", action="store_true", help="Marqo + GR-Lite blend (Myntra only)")
     args = ap.parse_args()
 
     engine = SearchEngine()
@@ -83,11 +84,12 @@ def main():
         vec = engine.image_vector(query)
         t1 = time.perf_counter()
         colour = engine.image_colour(query) if args.colour else None
-        results = engine.search(vec, args.k, filters, query_colour=colour)
+        precise = engine.precise_vector(query) if args.precise else None
+        results = engine.search(vec, args.k, filters, query_colour=colour, precise_query=precise)
         t2 = time.perf_counter()
         embed_ms.append((t1 - t0) * 1000)
         search_ms.append((t2 - t1) * 1000)
-        suffix = (f"_{args.source}" if args.source else "") + ("_colour" if args.colour else "")
+        suffix = (f"_{args.source}" if args.source else "") + ("_colour" if args.colour else "") + ("_precise" if args.precise else "")
         name = f"query_{i:02d}{suffix}.jpg"
         sheet(query, results, f"Query {i}: {photo.name}").save(out_dir / name, quality=88)
         print(f"{name}: top = {results.brand.iloc[0]} | {results.title.iloc[0]} "

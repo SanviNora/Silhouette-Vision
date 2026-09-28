@@ -122,10 +122,23 @@ full photo is used. Even so, the picked crop recovers 60% of the gap to a perfec
 usually not the one the shopper wants. **App design:** detect all items and let the user choose;
 default to the whole photo when more than one item is found.
 
+## 3.5 "Precise match": the Marqo + GR-Lite blend in the app
+GR-Lite embeddings were computed for the 41,906 Myntra products (the public gallery; ~2.8 h on
+the M4). The app's "Precise match (Myntra)" toggle blends the two scores 50/50, the weight chosen
+on held-out LookBench queries in Phase 2 (+4.7 exact R@1 overall, +7.6 on street photos).
+
+On the test photos the blend changes the *kind* of similarity: GR-Lite weighs colour and texture
+more, Marqo weighs silhouette more. For the burgundy Miu Miu slingbacks, Marqo alone returned
+pointed slingbacks in mixed colours; the blend returned all maroon/burgundy/red patent shoes, but
+in mixed shapes (flats, sandals, a wedge). For the black lace mini dress, the blend returned more
+black mini dresses and fewer robes and nightwear. It costs ~160 ms extra per query and a second
+model (1.2 GB), so it is optional and off by default.
+
 ## App changes
 - **Garment picker:** thumbnails of each detected item; the search, colour matching and attributes
   use the chosen crop.
 - **"What we see":** predicted attributes for the uploaded photo, with confidence.
 - **Attribute tags on results** (trusted attributes only for Farfetch).
+- **Precise match (Myntra)** toggle: Marqo + GR-Lite blend.
 - **Style map tab:** interactive UMAP map per category, a style table (price, markdown,
   pre-owned, signature brands), and sample products per style.
