@@ -55,7 +55,7 @@ def get_match_confidence():
         return None
 
 
-def show_best_match(engine: SearchEngine, query, filters, precise_query):
+def show_best_match(engine: SearchEngine, query, filters, precise_query, image=None, query_attrs=None):
     """Highlight the single closest product with a calibrated exact-match likelihood."""
     matcher = get_match_confidence()
     if matcher is None:
@@ -75,6 +75,8 @@ def show_best_match(engine: SearchEngine, query, filters, precise_query):
                           "Based on how strongly the best result stands out from the next ones, not "
                           "on raw similarity alone.")
         right.caption(f"Visual similarity {row.similarity:.2f} (cosine; 1.00 = identical image)")
+        if image is not None:
+            show_why(engine, image, query_attrs, row)
 
 
 @st.cache_resource(show_spinner=False)
@@ -159,7 +161,7 @@ def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     return Filters(sources, categories, genders, preowned), k, match_colour
 
 
-def show_results(results, key_prefix: str):
+def show_results(results, key_prefix: str, query_attrs=None):
     if results.empty:
         st.info("No products match these filters.")
         return
@@ -175,21 +177,66 @@ def show_results(results, key_prefix: str):
             )
             st.markdown(f"**{row.brand or ''}**  \n{row.title}")
             tags = item_tags(preds.loc[row.item_id], row.source) if preds is not None else []
+            shared = shared_text(query_attrs, row)
             st.caption(f"{price_text(row)}  \n{badges} · {row.category} · similarity {row.similarity:.2f}"
-                       + (f"  \n{' · '.join(tags)}" if tags else ""))
+                       + (f"  \n{shared}" if shared else (f"  \n{' · '.join(tags)}" if tags else "")))
             if st.button("More like this", key=f"{key_prefix}-{row.item_id}"):
                 st.session_state.similar_to = row.item_id
                 st.rerun()
 
 
-def show_attributes(engine: SearchEngine, image):
+def show_attributes(engine: SearchEngine, image) -> list[dict]:
     predictor, _ = get_attributes()
     if predictor is None:
-        return
+        return []
     attrs = predictor.predict(engine.image_vector(image))
     if attrs:
         st.markdown("**What we see**")
         st.caption("  ·  ".join(f"{a['label']}: **{a['value']}** ({a['confidence']:.0%})" for a in attrs))
+    return attrs
+
+
+RELATION_MARK = {"same": "✓", "similar": "≈", "different": "✗"}
+
+
+def shared_text(query_attrs, row) -> str:
+    """'Shares: Handbags · Brown' / 'Differs: Printed vs Solid' for a result card."""
+    _, preds = get_attributes()
+    if not query_attrs or preds is None:
+        return ""
+    from silhouette_vision.explain import compare_attributes
+
+    comp = compare_attributes(query_attrs, preds.loc[row.item_id], row.source)
+    shares = [c["item"] for c in comp if c["relation"] != "different"]
+    differs = [f"{c['item']} (yours: {c['photo']})" for c in comp if c["relation"] == "different"]
+    return "  \n".join(t for t in [("Shares: " + " · ".join(shares)) if shares else "",
+                                    ("Differs: " + " · ".join(differs)) if differs else ""] if t)
+
+
+def show_why(engine: SearchEngine, image, query_attrs, row) -> None:
+    """Attribute comparison and where the match comes from, in both photos."""
+    from silhouette_vision.explain import compare_attributes, occlusion_map, overlay
+
+    with st.expander("Why this matches"):
+        _, preds = get_attributes()
+        if query_attrs and preds is not None:
+            comp = compare_attributes(query_attrs, preds.loc[row.item_id], row.source)
+            if comp:
+                st.markdown("  \n".join(
+                    f"{RELATION_MARK[c['relation']]} **{c['label']}**: {c['photo']}"
+                    + ("" if c["relation"] == "same" else f" vs {c['item']}") for c in comp))
+        if not st.toggle("Show where the match comes from (a few seconds)", key="why_heatmap"):
+            return
+        item_image = load_rgb(ROOT / row.image_path)
+        with st.spinner("Hiding one region at a time and re-measuring the similarity…"):
+            query_vec, item_vec = engine.image_vector(image), engine.item_vector(row.item_id)
+            left, right = st.columns(2)
+            left.image(overlay(image, occlusion_map(engine.encoder, image, item_vec, grid=8)),
+                       caption="Your photo: regions the match depends on", width="stretch")
+            right.image(overlay(item_image, occlusion_map(engine.encoder, item_image, query_vec, grid=8)),
+                        caption="The match: regions that resemble your photo", width="stretch")
+        st.caption("Brighter = hiding this region lowers the visual similarity most (Marqo model). "
+                   "Attributes are predicted for both images; ≈ means a neighbouring shade.")
 
 
 def pick_garment(image):
@@ -289,7 +336,7 @@ def main():
                  "catalog only, and is slower (loads a second model on first use).")
         if upload:
             image = pick_garment(load_rgb(upload))
-            show_attributes(engine, image)
+            query_attrs = show_attributes(engine, image)
             query = engine.image_vector(image)
             show_named_model(engine, query)
             if refine:
@@ -299,10 +346,10 @@ def main():
             if precise:
                 with st.spinner("Precise match…"):
                     precise_query = engine.precise_vector(image)
-            show_best_match(engine, query, filters, precise_query)
+            show_best_match(engine, query, filters, precise_query, image, query_attrs)
             st.markdown("**Similar products**")
             show_results(engine.search(query, k, filters, query_colour=colour,
-                                       precise_query=precise_query), "img")
+                                       precise_query=precise_query), "img", query_attrs)
 
     with text_tab:
         text = st.text_input("Describe what you're looking for",

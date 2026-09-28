@@ -1,4 +1,4 @@
-# Phase 4 Results — Explaining Results (in progress)
+# Phase 4 Results — Explaining Results
 
 ## 4.1 Exact-match confidence (scripts/06_match_confidence.py, src/silhouette_vision/match.py)
 **Question a shopper asks:** "Is this the exact product in my photo, or just something similar?"
@@ -101,6 +101,49 @@ and "Céline", so Dior had no test photos and would show no listings (fixed with
 (93%)" (≥ 80%; "Probably" at 50–80%), followed by our listings of that model ranked by visual
 similarity, or "Not stocked in our catalog (a 2019 snapshot)", plus a web search link.
 
-## Next in Phase 4
-"Why it matches": attribute overlap between the query and each result, plus which image regions
-drive the similarity.
+## 4.4 Why it matches (src/silhouette_vision/explain.py, scripts/exp_explain_heatmap.py)
+Two explanations, shown under the best match ("Why this matches") and, in short form, on every
+result card.
+
+**Shared attributes.** The photo's predicted attributes side by side with the item's (type,
+colour, pattern, sleeves, neck; trusted ones only on Farfetch), each marked same (✓), similar
+(≈, a neighbouring shade such as Navy Blue vs Blue, the colour classifier's main error) or
+different (✗). Only confident predictions (≥ 50%) on both sides are compared. Cards show
+"Shares: Tops · Blue" / "Differs: Striped (yours: Solid)". This is a readable summary of what
+the two have in common, *not* the model's reasoning; the heatmap is.
+
+**Heatmap: where the match comes from.** Four methods, tested on 150 LookBench street photos
+against each photo's true product. Pointing = the hottest cell lies inside the garment's box.
+Deletion = similarity drop when the hottest 25% of the image is hidden (a faithful map must
+beat hiding a random 25%).
+
+| Method | Pointing | Deletion drop: hottest / random / coldest 25% | Hottest beats random | Time per map |
+|---|---|---|---|---|
+| **Occlusion, 8×8 grid (shipped)** | **67%** | **0.070** / −0.010 / −0.077 | **95%** | 1.2 s |
+| Occlusion, 12×12 grid | 59% | 0.066 / −0.008 / −0.065 | 95% | 3.1 s |
+| Attention-pooling attribution | 11% | 0.043 / −0.024 / −0.071 | 94% | 0.05 s |
+| Gradient × input on patch tokens | 27% | −0.012 / −0.019 / −0.035 | 61% | 0.11 s |
+
+Baselines for pointing: a random cell 21%, the centre cell 60–65%.
+
+- **Occlusion** hides one window at a time and measures how much the similarity drops:
+  slow (~50 forward passes) but faithful by construction, and it is the only method whose
+  hottest regions both land on the garment and matter when removed.
+- **Attention-pooling attribution** splits Marqo's pooled embedding exactly into per-patch
+  terms and is 25× faster, but its hottest patch lands on the garment *less often than chance*.
+  The heat sits on scattered background patches: the ViT "register" effect, where a few
+  low-information patches are repurposed to store global image information. The map is exact
+  about the arithmetic but misleading about *where in the photo* the evidence is.
+- **Gradient × input** fails deletion (its top regions are no more important than random ones).
+- Honest caveat: on street photos the garment is usually central, so "always point at the
+  centre" is a strong baseline (60%). Occlusion beats it only modestly on pointing; its real
+  evidence is the deletion test.
+
+**In the app:** attributes appear instantly; the heatmaps (the photo, and the match) sit
+behind a toggle ("a few seconds") so searching stays fast. On the test photos occlusion
+highlights the LV logos and flap of the Félicie, the waistband and leg line of the wide-leg
+jeans, and the body of the denim tote.
+
+## Phase 4 status
+Complete: exact-match confidence (4.1), garment picker fixes (4.2), named-model recognition
+(4.3), why it matches (4.4). Next: Phase 5, cold-start demand forecasting (Visuelle 2.0).
