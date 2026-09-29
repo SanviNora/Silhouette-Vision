@@ -7,7 +7,7 @@ brand-new product from look-alike past launches.
 
 *Silhouette* is both a core fashion term and what the model actually looks at: the shape of a garment.
 
-**Live demo:** Streamlit Community Cloud (link added once deployed; see [deploy/STREAMLIT_CLOUD.md](deploy/STREAMLIT_CLOUD.md)) · **Code, methods, evaluation:** this repo
+**Live demo:** [silhouette-vision.streamlit.app](https://silhouette-vision.streamlit.app/) (public version: Myntra catalog + demand forecast; may take a minute to wake up) · **Code, methods, evaluation:** this repo
 
 ## What it does
 
