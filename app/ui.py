@@ -239,7 +239,7 @@ def show_why(engine: SearchEngine, image, query_attrs, row) -> None:
                    "Attributes are predicted for both images; ≈ means a neighbouring shade.")
 
 
-def pick_garment(image):
+def pick_garment(image, key: str = "search"):
     """Let the user choose the whole photo or one detected item; returns the image to search with."""
     detections = get_detector().items(image)
     if not detections:
@@ -258,8 +258,99 @@ def pick_garment(image):
     # One item found -> search it; several -> start from the whole photo and let the user choose
     # (on LookBench street photos, auto-picking the top item was worse than no crop at all).
     default = 1 if len(detections) == 1 else 0
-    choice = st.radio("Search for", options, index=default, horizontal=True)
+    choice = st.radio("Use", options, index=default, horizontal=True, key=f"garment-{key}")
     return image if choice == "Whole photo" else crops[options.index(choice) - 1]
+
+
+@st.cache_resource(show_spinner="Loading demand model…")
+def get_forecaster():
+    try:
+        from silhouette_vision.demand import DemandForecaster
+
+        return DemandForecaster()
+    except FileNotFoundError:
+        return None
+
+
+CLOTHING = {"top", "bottoms", "dress", "outerwear"}
+VISUELLE_IMAGES = ROOT / "data/raw/visuelle2/visuelle2/images"
+
+
+def forecast_tab():
+    import datetime
+
+    forecaster = get_forecaster()
+    if forecaster is None:
+        st.info("Run scripts/08_visuelle_prepare.py and scripts/09_demand.py to build the demand model.")
+        return
+    st.caption("How many units would a new product sell in its first 12 weeks? Learned from 5,355 "
+               "launches of Nuna Lie, an Italian fast-fashion womenswear brand (110 stores, 2017–2019; "
+               "Visuelle 2.0, CC BY-NC-SA). A new product has no sales history, so the model borrows "
+               "from past products that look like it.")
+    upload = st.file_uploader("Upload a photo of the new product", type=["jpg", "jpeg", "png", "webp"],
+                              key="forecast-upload")
+    if not upload:
+        return
+    engine = get_engine()
+    image = pick_garment(load_rgb(upload), key="forecast")
+    vec = engine.image_vector(image)
+
+    predictor, _ = get_attributes()
+    if predictor is not None:
+        attrs = predictor.predict(vec)
+        kind = next((a["value"] for a in attrs if a["attribute"] == "article_type"), None)
+        category = predictor.type_to_category.get(kind)
+        if category is not None and category not in CLOTHING:
+            st.warning(f"This looks like **{kind}**. The brand in this dataset sells women's clothing "
+                       "only, so there is no sales history to forecast from.")
+            return
+
+    b = forecaster.b
+    tags = forecaster.suggest_tags(vec)
+    left, mid, right = st.columns(3)
+    category = left.selectbox("Category", b["categories"]["category"],
+                              index=b["categories"]["category"].index(tags["category"]))
+    colour = mid.selectbox("Colour", b["categories"]["color"],
+                           index=b["categories"]["color"].index(tags["color"]))
+    fabric = right.selectbox("Fabric", b["categories"]["fabric"],
+                             index=b["categories"]["fabric"].index(tags["fabric"]))
+    st.caption("Suggested from the most similar past products (right about 2 times in 3 for colour "
+               "and fabric, 3 in 4 for category); change them if they're wrong.")
+    left, mid, right = st.columns(3)
+    n_stores = left.slider("Number of stores", 1, len(b["store_order"]),
+                           int(np.median(b["latest_n_stores"])),
+                           help="Stores are the brand's most-used launch stores. Distribution breadth "
+                                "is the strongest single predictor: it reflects the planners' own "
+                                "expectations.")
+    price_pct = mid.slider("Price level (vs the brand's range)", 0, 100, 50, 5,
+                           help="Percentile of the brand's latest-season prices (real prices are "
+                                "anonymised in the dataset).") / 100
+    launch = right.date_input("Launch date", datetime.date(2019, 9, 2))
+
+    r = forecaster.forecast(vec, category, colour, fabric, price_pct, n_stores, launch)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Expected sales, 12 weeks", f"{r['total']:,.0f} units")
+    c2.metric("Likely range (80%)", f"{r['low']:,.0f} – {r['high']:,.0f}",
+              help="On 1,900 unseen products from the 2019 seasons, actual 12-week sales were "
+                   "within this range of the prediction for 80% of products.")
+    c3.metric("Per store", f"{r['per_store']:.1f} units")
+    weeks = pd.DataFrame({"Week": np.arange(1, 13), "Units": r["weekly"]})
+    st.plotly_chart(px.bar(weeks, x="Week", y="Units", height=260), width="stretch")
+    similarity = forecaster.nearest_similarity(vec)
+    if similarity < b["min_similarity"]:
+        st.caption(f"Closest past product similarity {similarity:.2f}; the brand's own new products "
+                   f"score ≥ {b['min_similarity']:.2f} (flat product shots). A photo of a person or a "
+                   "busy background lowers this, so treat the forecast as rough.")
+
+    st.markdown("**Borrowed from: the most similar past launches**")
+    cols = st.columns(8)
+    for col, (_, row) in zip(cols, r["lookalikes"].iterrows(), strict=False):
+        col.image(str(VISUELLE_IMAGES / row.image_path), width="stretch")
+        col.caption(f"{row.category} · {row.color}  \n{row.units_per_store:.1f} units/store · "
+                    f"{row.n_stores} stores · {row.season}")
+    st.caption("Model: gradient boosting on store, launch timing, tags, price, distribution breadth "
+               "and look-alike sales. Tested on the 2019 seasons (never seen in training): weekly "
+               "product sales error 34.6% (WAPE) vs 43.7% for a seasonal average.")
 
 
 def style_map_tab():
@@ -323,7 +414,8 @@ def main():
                                    query_colour=colour), "sim")
         return
 
-    photo_tab, text_tab, map_tab = st.tabs(["Search by photo", "Search by description", "Style map"])
+    photo_tab, text_tab, map_tab, forecast = st.tabs(
+        ["Search by photo", "Search by description", "Style map", "New product forecast"])
 
     with photo_tab:
         upload = st.file_uploader("Upload a product photo", type=["jpg", "jpeg", "png", "webp"])
@@ -335,7 +427,7 @@ def main():
                  "exact-match recall overall and +7.6 on street photos. Searches the Myntra "
                  "catalog only, and is slower (loads a second model on first use).")
         if upload:
-            image = pick_garment(load_rgb(upload))
+            image = pick_garment(load_rgb(upload), key="search")
             query_attrs = show_attributes(engine, image)
             query = engine.image_vector(image)
             show_named_model(engine, query)
@@ -359,6 +451,9 @@ def main():
 
     with map_tab:
         style_map_tab()
+
+    with forecast:
+        forecast_tab()
 
 
 main()
