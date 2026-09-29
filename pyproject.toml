@@ -9,29 +9,23 @@ description = "Fashion product intelligence and visual search with multimodal em
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "cryptography>=43.0",
-    "duckdb>=1.0",
-    "fastapi>=0.115",
     "huggingface-hub>=0.25",
-    "imagehash>=4.3",
-    "kaggle>=1.6",
-    "lightgbm>=4.5",
+    "joblib>=1.4",
+    "numpy>=2.0",
     "open-clip-torch>=2.26",
     "pandas>=2.2",
-    "pandera>=0.20",
     "pillow>=10.4",
     "plotly>=5.24",
     "pyarrow>=16.0",
-    "python-multipart>=0.0.9",
     "pyyaml>=6.0",
-    "requests>=2.32",
+    "safetensors>=0.4",
     "scikit-learn>=1.5",
-    "shap>=0.46",
+    "scipy>=1.13",
     "streamlit>=1.40",
+    "timm>=1.0",
     "torch>=2.4",
     "transformers>=4.44",
     "umap-learn>=0.5",
-    "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]
@@ -39,10 +33,17 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.6",
 ]
+# Only for fetching raw data (Kaggle datasets, the Visuelle MEGA link).
+data = [
+    "cryptography>=43.0",
+    "kaggle>=1.6",
+    "requests>=2.32",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = ["slow: downloads and runs the real Marqo model (skipped in CI)"]
 
 [tool.ruff]
 line-length = 100

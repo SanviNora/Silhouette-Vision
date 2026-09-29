@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from silhouette_vision.config import ROOT, load_config
+from silhouette_vision.config import DATA_ROOT, load_config
 
 MYNTRA_DIR = Path("data/raw/fashion_product_images/fashion-dataset")
 FARFETCH_DIR = Path("data/raw/farfetch")
@@ -55,11 +55,11 @@ def _read_myntra_json(file: Path) -> dict:
 
 def build_myntra() -> pd.DataFrame:
     tax = load_config("taxonomy")["myntra"]
-    files = sorted((ROOT / MYNTRA_DIR / "styles").glob("*.json"))
+    files = sorted((DATA_ROOT / MYNTRA_DIR / "styles").glob("*.json"))
     with ThreadPoolExecutor(8) as pool:
         df = pd.DataFrame(pool.map(_read_myntra_json, files))
 
-    has_image = df.source_id.map(lambda i: (ROOT / MYNTRA_DIR / "images" / f"{i}.jpg").exists())
+    has_image = df.source_id.map(lambda i: (DATA_ROOT / MYNTRA_DIR / "images" / f"{i}.jpg").exists())
     df = df[has_image & ~df.master_category.isin(tax["exclude_master_categories"])].copy()
 
     df["category"] = (
@@ -97,7 +97,7 @@ def _farfetch_category(titles: pd.Series) -> pd.Series:
 
 
 def build_farfetch() -> pd.DataFrame:
-    raw = pd.read_csv(ROOT / FARFETCH_DIR / "current_farfetch_listings.csv")
+    raw = pd.read_csv(DATA_ROOT / FARFETCH_DIR / "current_farfetch_listings.csv")
     raw = raw.drop_duplicates("id").reset_index(drop=True)
     source_id = raw["id"].astype(str)
     cutout = raw["images.cutOut"].str.rsplit("/", n=1).str[-1]
@@ -132,7 +132,7 @@ def build_farfetch() -> pd.DataFrame:
             "year": pd.array([2019] * len(raw), dtype="Int64"),
         }
     )
-    return df[df.image_path.map(lambda p: (ROOT / p).exists())]
+    return df[df.image_path.map(lambda p: (DATA_ROOT / p).exists())]
 
 
 COLUMNS = [
@@ -152,4 +152,4 @@ def build_catalog() -> pd.DataFrame:
 
 
 def load_catalog() -> pd.DataFrame:
-    return pd.read_parquet(ROOT / "data/processed/catalog.parquet")
+    return pd.read_parquet(DATA_ROOT / "data/processed/catalog.parquet")

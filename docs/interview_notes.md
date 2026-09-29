@@ -45,6 +45,8 @@ Data-specific Q&A lives in [data_guide.md](data_guide.md#interview-cheat-sheet).
 | 2026-09-28 | Exclude `restock` and weekly discounts from demand features | Only known after launch (leakage) | Using them (as some published code does for restock) |
 | 2026-09-28 | Store count as a **within-season percentile** | 2019 distribution widened while per-store sales fell: raw count → +19% bias, 44.1 WAPE; percentile → −1%, 34.6 | Raw count |
 | 2026-09-28 | Final demand model: boosting with tags + image | 34.6 WAPE vs 43.7 seasonal average; image −1.0 point (CI 0.5–1.5). Trends and a learned image score added nothing | Google Trends; ridge image score; pure look-alikes |
+| 2026-09-28 | Public demo = Myntra + Visuelle only; Farfetch as aggregates | Farfetch data is scraped with no license (no redistribution), and its CDN now blocks hotlinking (HTTP 429) | Hosting or hotlinking Farfetch images |
+| 2026-09-28 | Host on a Hugging Face Docker Space; data in a separate HF dataset repo | Free 16 GB CPU tier fits three models; the 0.7 GB bundle stays out of git; the same code runs local or public via two env vars | Streamlit Community Cloud (1 GB RAM) |
 | 2026-09-28 | Decide the item type before naming a model | Red T-bar pumps were named "Miu Miu Arcadie" (a bag) at 57%; gating by type drops it to 38%, below the claim threshold | One flat list of all models |
 
 ## Likely questions (answers to be filled in with our own results)
@@ -130,3 +132,8 @@ Data-specific Q&A lives in [data_guide.md](data_guide.md#interview-cheat-sheet).
 - *What leakage did you avoid?* Restock quantities and in-season discounts (only known after launch); look-alike and tag features for training products borrow only from other seasons, mimicking a new season; tuning on AW18 only.
 - *What didn't work?* Google Trends (no correlation with sales here), a learned image regressor (no better than look-alikes), Poisson loss (biased). Zero-shot tag suggestions (31% on category) lost to a vote of look-alikes (77%).
 - *Limitations?* Stock-outs censor demand (a sell-out looks like low demand); one brand and country; shoppers' photos differ from the brand's flat product shots, so app forecasts for them are rough, and the app says so.
+
+**Deployment (Phase 6)**
+- *How is the demo deployed?* A Docker Space on Hugging Face. On start it downloads a 0.7 GB data bundle (thumbnails, float16 embeddings, trained heads) from a dataset repo, then runs Streamlit on CPU. The same code runs locally or publicly: `SILHOUETTE_DATA_ROOT` points at the data, `SILHOUETTE_PUBLIC=1` hides anything that can't be redistributed.
+- *How did you handle data licensing?* Recorded each source's license before using it. Myntra (MIT) and Visuelle (CC BY-NC-SA, credited, bundle shared alike) are hosted; the scraped Farfetch data stays local, and the public app only shows aggregates (style statistics, anonymous map positions). I tested hotlinking Farfetch images instead of hosting them: their CDN returns 429 to every request, so that wasn't an option either.
+- *How do you keep a pickled model working in production?* Pin the exact library versions it was saved with (scikit-learn pickles aren't portable across versions), use the same Python, and test the public configuration locally on CPU before shipping.

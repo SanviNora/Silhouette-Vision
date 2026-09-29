@@ -12,7 +12,7 @@ fabric, usage, season and fit showed clear domain shift (e.g. 59% of luxury bags
 import numpy as np
 import pandas as pd
 
-from silhouette_vision.config import ROOT, path
+from silhouette_vision.config import DATA_ROOT, path
 
 # Shown in the app. Hidden: gender (learned bias, e.g. women's wide-leg jeans -> "Men" at 100%),
 # usage and season (weakest test macro-F1, yet predicted at ~100% confidence), fabric (44 F1).
@@ -59,7 +59,7 @@ class AttributePredictor:
 
 
 def load_catalog_predictions() -> pd.DataFrame | None:
-    file = ROOT / "data/processed/attribute_predictions.parquet"
+    file = DATA_ROOT / "data/processed/attribute_predictions.parquet"
     return pd.read_parquet(file).set_index("item_id") if file.exists() else None
 
 

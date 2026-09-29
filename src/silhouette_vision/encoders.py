@@ -3,6 +3,7 @@
 Every encoder returns L2-normalized float32 numpy arrays, so cosine similarity is a dot product.
 """
 
+import os
 from typing import Protocol
 
 import numpy as np
@@ -12,6 +13,8 @@ from PIL import Image
 
 
 def default_device() -> str:
+    if forced := os.environ.get("SILHOUETTE_DEVICE"):  # e.g. "cpu" to mimic the hosted app
+        return forced
     if torch.backends.mps.is_available():
         return "mps"
     return "cuda" if torch.cuda.is_available() else "cpu"

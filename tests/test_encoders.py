@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
+pytestmark = pytest.mark.slow
+
 from silhouette_vision.encoders import load_encoder
 
 

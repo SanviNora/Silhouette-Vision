@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import DataLoader, Dataset
 
-from silhouette_vision.config import ROOT, path
+from silhouette_vision.config import DATA_ROOT, path
 from silhouette_vision.encoders import Encoder
 from silhouette_vision.images import load_rgb
 
@@ -27,7 +27,7 @@ class ImageDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, i):
-        return self.transform(load_rgb(ROOT / self.image_paths[i]))
+        return self.transform(load_rgb(DATA_ROOT / self.image_paths[i]))
 
 
 def embeddings_dir(name: str) -> Path:

@@ -13,13 +13,27 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from silhouette_vision.config import ROOT, path
+from silhouette_vision.config import DATA_ROOT, PUBLIC, path
 from silhouette_vision.images import load_rgb
 from silhouette_vision.search import Filters, SearchEngine
 
 st.set_page_config(page_title="Silhouette Vision", page_icon="👗", layout="wide")
 
 CURRENCY = {"SGD": "S$", "INR": "₹"}
+ABOUT = """
+Portfolio project, not affiliated with any brand or retailer.
+[Code and results](https://github.com/SanviNora/Silhouette-Vision)
+
+**Data**
+- Products: *Fashion Product Images* (Myntra, via Kaggle), MIT license.
+- Demand: *Visuelle 2.0*, Skenderi et al., CVPR Workshops 2022, CC BY-NC-SA 4.0
+  (non-commercial; images shown as thumbnails).
+- Luxury analysis: a 2019 Farfetch listings snapshot, used for analysis only; no Farfetch
+  products or images are shown in the public demo.
+- Benchmark: LookBench (Apache-2.0).
+
+**Models:** Marqo-FashionSigLIP, GR-Lite (DINOv3), YOLOS-Fashionpedia.
+"""
 SOURCE_LABEL = {"myntra": "Myntra", "farfetch": "Farfetch"}
 
 
@@ -65,7 +79,7 @@ def show_best_match(engine: SearchEngine, query, filters, precise_query, image=N
     tier = matcher.tier(prob)
     with st.container(border=True):
         left, right = st.columns([1, 4])
-        left.image(str(ROOT / row.image_path), width="stretch")
+        left.image(str(DATA_ROOT / row.image_path), width="stretch")
         right.markdown(f"#### {tier}")
         right.markdown(f"**{row.brand or ''}** — {row.title}  \n{price_text(row)} · "
                        f"{SOURCE_LABEL[row.source]}{' · Pre-owned' if row.is_preowned else ''}")
@@ -111,20 +125,22 @@ def show_named_model(engine: SearchEngine, image_vec) -> None:
         rows = catalog_listings(engine.catalog, model)
         web = f"https://www.google.com/search?tbm=shop&q={quote_plus(model.label)}"
         if len(rows) == 0:
-            st.markdown(f"Not stocked in our catalog (a 2019 snapshot). [Find it online]({web})")
+            where = ("The public demo searches Myntra, a mass-market catalog that doesn't carry "
+                     "this brand." if PUBLIC else "Not stocked in our catalog (a 2019 snapshot).")
+            st.markdown(f"{where} [Find it online]({web})")
             return
         best = rows[np.argsort(-(engine.embeddings[rows] @ image_vec))[:4]]
         st.markdown(f"**{len(rows)} listing{'s' if len(rows) > 1 else ''} of this model in our catalog** "
                     f"· [Find it online]({web})")
         cols = st.columns(4)
         for col, (_, row) in zip(cols, engine.catalog.iloc[best].iterrows(), strict=False):
-            col.image(str(ROOT / row.image_path), width="stretch")
+            col.image(str(DATA_ROOT / row.image_path), width="stretch")
             col.caption(f"{row.title}  \n{price_text(row)}{' · Pre-owned' if row.is_preowned else ''}")
 
 
 @st.cache_data(show_spinner=False)
 def get_style_map():
-    file = ROOT / "data/processed/style_clusters.parquet"
+    file = DATA_ROOT / "data/processed/style_clusters.parquet"
     report = path("reports") / "style_clusters.json"
     if not file.exists() or not report.exists():
         return None, None
@@ -143,7 +159,8 @@ def price_text(row) -> str:
 def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     st.sidebar.header("Filters")
     cat = engine.catalog
-    sources = st.sidebar.multiselect("Catalog", ["myntra", "farfetch"], format_func=SOURCE_LABEL.get)
+    sources = [] if PUBLIC else st.sidebar.multiselect("Catalog", ["myntra", "farfetch"],
+                                                        format_func=SOURCE_LABEL.get)
     categories = st.sidebar.multiselect("Category", sorted(cat.category.unique()))
     genders = st.sidebar.multiselect("Gender", sorted(cat.gender.dropna().unique()))
     condition = st.sidebar.radio("Condition", ["Any", "New", "Pre-owned"], horizontal=True)
@@ -155,9 +172,12 @@ def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     )
     preowned = {"Any": None, "New": False, "Pre-owned": True}[condition]
     st.sidebar.caption(
-        f"{len(cat):,} products · Myntra (MIT) + Farfetch (2019 scrape, prices in SGD). "
-        "Model: Marqo-FashionSigLIP."
+        f"{len(cat):,} products · "
+        + ("Myntra (MIT). " if PUBLIC else "Myntra (MIT) + Farfetch (2019 scrape, prices in SGD). ")
+        + "Model: Marqo-FashionSigLIP."
     )
+    with st.sidebar.expander("About & credits"):
+        st.markdown(ABOUT)
     return Filters(sources, categories, genders, preowned), k, match_colour
 
 
@@ -171,7 +191,7 @@ def show_results(results, key_prefix: str, query_attrs=None):
     cols = st.columns(4)
     for i, row in results.iterrows():
         with cols[i % 4]:
-            st.image(str(ROOT / row.image_path), width="stretch")
+            st.image(str(DATA_ROOT / row.image_path), width="stretch")
             badges = " · ".join(
                 b for b in [SOURCE_LABEL[row.source], "Pre-owned" if row.is_preowned else None] if b
             )
@@ -227,7 +247,7 @@ def show_why(engine: SearchEngine, image, query_attrs, row) -> None:
                     + ("" if c["relation"] == "same" else f" vs {c['item']}") for c in comp))
         if not st.toggle("Show where the match comes from (a few seconds)", key="why_heatmap"):
             return
-        item_image = load_rgb(ROOT / row.image_path)
+        item_image = load_rgb(DATA_ROOT / row.image_path)
         with st.spinner("Hiding one region at a time and re-measuring the similarity…"):
             query_vec, item_vec = engine.image_vector(image), engine.item_vector(row.item_id)
             left, right = st.columns(2)
@@ -273,7 +293,12 @@ def get_forecaster():
 
 
 CLOTHING = {"top", "bottoms", "dress", "outerwear"}
-VISUELLE_IMAGES = ROOT / "data/raw/visuelle2/visuelle2/images"
+def visuelle_image(image_path: str) -> str:
+    """Deploy-bundle thumbnail if present, else the original Visuelle PNG."""
+    from pathlib import Path
+
+    thumb = DATA_ROOT / "data/processed/thumbs/visuelle" / Path(image_path).with_suffix(".jpg")
+    return str(thumb if thumb.exists() else DATA_ROOT / "data/raw/visuelle2/visuelle2/images" / image_path)
 
 
 def forecast_tab():
@@ -345,7 +370,7 @@ def forecast_tab():
     st.markdown("**Borrowed from: the most similar past launches**")
     cols = st.columns(8)
     for col, (_, row) in zip(cols, r["lookalikes"].iterrows(), strict=False):
-        col.image(str(VISUELLE_IMAGES / row.image_path), width="stretch")
+        col.image(visuelle_image(row.image_path), width="stretch")
         col.caption(f"{row.category} · {row.color}  \n{row.units_per_store:.1f} units/store · "
                     f"{row.n_stores} stores · {row.season}")
     st.caption("Model: gradient boosting on store, launch timing, tags, price, distribution breadth "
@@ -370,12 +395,14 @@ def style_map_tab():
                              "On sale": v["on_sale_share"], "Pre-owned": v["preowned_share"],
                              "Signature brands": ", ".join(v["signature_brands"])}
                             for v in info["detail"].values()]).sort_values("Median price", ascending=False)
-    sample = data.sample(min(6000, len(data)), random_state=0).merge(
-        engine.catalog[["item_id", "brand", "title", "price"]], on="item_id")
+    sample = data.sample(min(6000, len(data)), random_state=0)
+    if PUBLIC:  # the Farfetch listings may not be redistributed: map positions and styles only
+        hover = {"map_x": False, "map_y": False}
+    else:
+        sample = sample.merge(engine.catalog[["item_id", "brand", "title", "price"]], on="item_id")
+        hover = {"brand": True, "title": True, "price": ":.0f", "map_x": False, "map_y": False}
     fig = px.scatter(sample, x="map_x", y="map_y", color="cluster_name", opacity=0.6,
-                     hover_data={"brand": True, "title": True, "price": ":.0f",
-                                 "map_x": False, "map_y": False},
-                     labels={"cluster_name": "Style"}, height=560)
+                     hover_data=hover, labels={"cluster_name": "Style"}, height=560)
     fig.update_traces(marker={"size": 4})
     fig.update_layout(xaxis_visible=False, yaxis_visible=False, legend_title_text="Style")
     st.plotly_chart(fig, width="stretch")
@@ -384,13 +411,17 @@ def style_map_tab():
         "On sale": st.column_config.ProgressColumn(format="percent", min_value=0, max_value=1),
         "Pre-owned": st.column_config.ProgressColumn(format="percent", min_value=0, max_value=1),
     })
+    if PUBLIC:
+        st.caption("Aggregates over a 2019 Farfetch listings snapshot, used for analysis only; "
+                   "individual products are not shown in the public demo.")
+        return
     style = st.selectbox("Show products from a style", summary.Style.tolist())
     members = data[data.cluster_name == style].sample(
         min(8, (data.cluster_name == style).sum()), random_state=1)
     cols = st.columns(8)
     for col, item_id in zip(cols, members.item_id, strict=False):
         row = engine.catalog.set_index("item_id").loc[item_id]
-        col.image(str(ROOT / row.image_path), caption=f"{row.brand}", width="stretch")
+        col.image(str(DATA_ROOT / row.image_path), caption=f"{row.brand}", width="stretch")
 
 
 def main():
@@ -403,7 +434,7 @@ def main():
     if item_id := st.session_state.get("similar_to"):
         row = engine.catalog.set_index("item_id").loc[item_id]
         left, right = st.columns([1, 4])
-        left.image(str(ROOT / row.image_path), width="stretch")
+        left.image(str(DATA_ROOT / row.image_path), width="stretch")
         right.subheader("More like this")
         right.write(f"**{row.brand or ''}** — {row.title}")
         if right.button("Clear"):

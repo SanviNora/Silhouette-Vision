@@ -38,7 +38,7 @@ re-run with one command (`make all` or `python -m silhouette_vision.pipeline`).
 | Vector search | **Exact NumPy search** (one dot product over L2-normalized embeddings) | ~230k items → tens of ms per query; FAISS dropped (its OpenMP runtime crashes alongside PyTorch on macOS) |
 | Storage | Parquet + DuckDB for tables, `.npy` for embeddings | Same stack as Couture Atelier Intelligence |
 | Compute | Apple Silicon **MPS** for embedding; CPU for everything else | Embedding ~44k images per model is a one-off job of well under an hour on MPS |
-| App | FastAPI (inference) + Streamlit (UI) | API is reusable; Streamlit is quick to polish |
+| App | Streamlit (UI), hosted as a Hugging Face Docker Space | FastAPI was planned as optional and not needed; the library in `src/` is the reusable layer |
 
 Deliverables: `configs/data_sources.yml` (license + provenance per source), `docs/data_contract.md`
 (unified schema), and `docs/data_guide.md` (what is inside every dataset).
