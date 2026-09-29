@@ -18,7 +18,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from silhouette_vision.config import DATA_ROOT, PUBLIC, path
+from silhouette_vision.config import DATA_REPO, DATA_ROOT, HOSTED, PUBLIC, path
 from silhouette_vision.images import load_rgb
 from silhouette_vision.search import Filters, SearchEngine
 
@@ -42,17 +42,17 @@ Portfolio project, not affiliated with any brand or retailer.
 SOURCE_LABEL = {"myntra": "Myntra", "farfetch": "Farfetch"}
 
 
-# "Precise match" loads a second 1.2 GB model; off on small hosts (SILHOUETTE_PRECISE=0).
-PRECISE_ALLOWED = os.environ.get("SILHOUETTE_PRECISE", "1") == "1"
+# "Precise match" loads a second 1.2 GB model: off on hosted/small machines (SILHOUETTE_PRECISE).
+PRECISE_ALLOWED = os.environ.get("SILHOUETTE_PRECISE", "0" if HOSTED else "1") == "1"
 
 
 @st.cache_resource(show_spinner="First start: downloading the demo data (~1 minute)…")
 def get_data() -> None:
-    """On a fresh host with DATA_REPO set, fetch the public bundle into DATA_ROOT."""
-    if repo := os.environ.get("DATA_REPO"):
+    """On a fresh host, fetch the public bundle into DATA_ROOT (no-op when the data is there)."""
+    if HOSTED or os.environ.get("DATA_REPO"):
         from silhouette_vision.bootstrap import ensure_bundle
 
-        ensure_bundle(DATA_ROOT, repo)
+        ensure_bundle(DATA_ROOT, DATA_REPO)
 
 
 @st.cache_resource(show_spinner="Loading model and index…")

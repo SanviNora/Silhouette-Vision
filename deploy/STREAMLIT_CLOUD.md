@@ -10,16 +10,10 @@ heads) is downloaded on first start from the public Hugging Face dataset
    - Repository: `SanviNora/Silhouette-Vision`, branch `main`
    - Main file path: `app/ui.py`
    - App URL: e.g. `silhouette-vision`
-3. **Advanced settings**:
-   - Python version: 3.12, 3.13 or 3.14 (`app/requirements.txt` picks the matching CPU PyTorch wheel)
-   - Secrets:
-     ```toml
-     SILHOUETTE_PUBLIC = "1"
-     SILHOUETTE_DEVICE = "cpu"
-     SILHOUETTE_PRECISE = "0"
-     SILHOUETTE_DATA_ROOT = "/tmp/silhouette_bundle"
-     DATA_REPO = "Sanvii/silhouette-vision-data"
-     ```
+3. No settings needed: with no local data, the app detects a fresh host, downloads the public
+   bundle into a temp folder and runs in public mode with "Precise match" off (see
+   `silhouette_vision/config.py`). Any Python 3.12-3.14 works (`app/requirements.txt` picks the
+   matching CPU PyTorch wheel). Optional overrides as Secrets: `DATA_REPO`, `SILHOUETTE_PRECISE`.
 4. **Deploy.** The first build installs dependencies (~5–10 min); the first visit downloads the
    data (~1 min) and the Marqo model.
 
