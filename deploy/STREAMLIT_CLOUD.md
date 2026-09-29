@@ -11,7 +11,7 @@ heads) is downloaded on first start from the public Hugging Face dataset
    - Main file path: `app/ui.py`
    - App URL: e.g. `silhouette-vision`
 3. **Advanced settings**:
-   - Python version: **3.13** (`app/requirements.txt` pins CPU PyTorch wheels built for 3.13)
+   - Python version: 3.12, 3.13 or 3.14 (`app/requirements.txt` picks the matching CPU PyTorch wheel)
    - Secrets:
      ```toml
      SILHOUETTE_PUBLIC = "1"
