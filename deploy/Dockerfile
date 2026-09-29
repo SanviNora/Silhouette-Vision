@@ -8,7 +8,7 @@ ENV HOME=/home/user PATH=/home/user/.local/bin:$PATH \
     PYTHONPATH=/home/user/app/src \
     SILHOUETTE_PUBLIC=1 SILHOUETTE_DEVICE=cpu \
     SILHOUETTE_DATA_ROOT=/home/user/bundle \
-    DATA_REPO=SanviNora/silhouette-vision-data
+    DATA_REPO=Sanvii/silhouette-vision-data
 WORKDIR /home/user/app
 
 COPY --chown=user requirements.txt .

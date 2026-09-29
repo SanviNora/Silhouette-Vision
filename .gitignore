@@ -27,3 +27,4 @@ artifacts/reports/demo_queries/
 
 # Public deploy bundle (scripts/10_build_public.py), uploaded separately.
 deploy_bundle/
+deploy_upload/

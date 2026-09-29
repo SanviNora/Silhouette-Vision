@@ -51,12 +51,13 @@ def top_k(scores: np.ndarray, k: int, mask: np.ndarray | None = None) -> np.ndar
 
 
 class SearchEngine:
-    def __init__(self, model: str = "marqo_fashion_siglip", device: str | None = None):
+    def __init__(self, model: str = "marqo_fashion_siglip", device: str | None = None,
+                 precise: bool = True):
         self.catalog = load_catalog()
         self.embeddings = load_embeddings(model, self.catalog)
         self.encoder = load_encoder(model, device=device)
         self.colour_hists = self._load_colour_hists()
-        self.precise = self._load_precise()
+        self.precise = self._load_precise() if precise else None
         self._precise_encoder = None
 
     # "Precise match": Marqo + GR-Lite blended 50/50 (best on held-out LookBench queries:

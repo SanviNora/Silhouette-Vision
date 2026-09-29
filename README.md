@@ -7,7 +7,7 @@ brand-new product from look-alike past launches.
 
 *Silhouette* is both a core fashion term and what the model actually looks at: the shape of a garment.
 
-**Live demo:** Hugging Face Space (link added on deployment) · **Code, methods, evaluation:** this repo
+**Live demo:** Streamlit Community Cloud (link added once deployed; see [deploy/STREAMLIT_CLOUD.md](deploy/STREAMLIT_CLOUD.md)) · **Code, methods, evaluation:** this repo
 
 ## What it does
 
@@ -68,7 +68,10 @@ streamlit run app/ui.py
 
 **Public demo:** `python scripts/10_build_public.py` builds a 0.7 GB bundle (Myntra + Visuelle
 only); `SILHOUETTE_DATA_ROOT=deploy_bundle SILHOUETTE_PUBLIC=1 streamlit run app/ui.py` runs it;
-`python scripts/11_publish.py` uploads it to a Hugging Face dataset + Docker Space (`deploy/`).
+`python scripts/11_publish.py` uploads it to the Hugging Face dataset
+[Sanvii/silhouette-vision-data](https://huggingface.co/datasets/Sanvii/silhouette-vision-data),
+which the hosted app (Streamlit Community Cloud, [guide](deploy/STREAMLIT_CLOUD.md)) downloads on
+first start. `deploy/` also holds a Docker setup for a Hugging Face Space (needs PRO).
 
 Tests: `pytest -q` (34 tests; `-m "not slow"` skips the two that download the real model).
 
@@ -80,7 +83,7 @@ src/silhouette_vision/  library: catalog, encoders, search, colour, attributes, 
 scripts/                numbered pipeline stages (01-11) and experiments (eval_*, exp_*)
 app/ui.py               Streamlit app
 configs/                data sources and licenses, taxonomy, pipeline, iconic luxury models
-deploy/                 Hugging Face Space: Dockerfile, pinned requirements, cards
+deploy/                 hosting: Streamlit Cloud guide, Docker Space files, data card
 docs/                   pipeline, data guide, results per phase, interview notes
 tests/                  unit tests (CI: lint + tests)
 ```

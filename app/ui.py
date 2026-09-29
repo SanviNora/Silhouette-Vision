@@ -7,6 +7,11 @@ and a style map of the luxury catalog.
 """
 
 import json
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # hosted: no pip install
 
 import numpy as np
 import pandas as pd
@@ -37,9 +42,23 @@ Portfolio project, not affiliated with any brand or retailer.
 SOURCE_LABEL = {"myntra": "Myntra", "farfetch": "Farfetch"}
 
 
+# "Precise match" loads a second 1.2 GB model; off on small hosts (SILHOUETTE_PRECISE=0).
+PRECISE_ALLOWED = os.environ.get("SILHOUETTE_PRECISE", "1") == "1"
+
+
+@st.cache_resource(show_spinner="First start: downloading the demo data (~1 minute)…")
+def get_data() -> None:
+    """On a fresh host with DATA_REPO set, fetch the public bundle into DATA_ROOT."""
+    if repo := os.environ.get("DATA_REPO"):
+        from silhouette_vision.bootstrap import ensure_bundle
+
+        ensure_bundle(DATA_ROOT, repo)
+
+
 @st.cache_resource(show_spinner="Loading model and index…")
 def get_engine() -> SearchEngine:
-    return SearchEngine("marqo_fashion_siglip")
+    get_data()
+    return SearchEngine("marqo_fashion_siglip", precise=PRECISE_ALLOWED)
 
 
 @st.cache_resource(show_spinner="Loading garment detector…")
@@ -452,7 +471,7 @@ def main():
         upload = st.file_uploader("Upload a product photo", type=["jpg", "jpeg", "png", "webp"])
         refine = st.text_input("Optional: refine with text", placeholder="e.g. in red, leather, cropped")
         weight = st.slider("Text influence", 0.0, 0.8, 0.3, 0.05, disabled=not refine)
-        precise = engine.has_precise and st.toggle(
+        precise = engine.has_precise and PRECISE_ALLOWED and st.toggle(
             "Precise match (Myntra)",
             help="Blends Marqo with GR-Lite, a fashion-retrieval model. In testing: +4.7 points "
                  "exact-match recall overall and +7.6 on street photos. Searches the Myntra "
