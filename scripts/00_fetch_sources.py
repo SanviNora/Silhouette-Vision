@@ -93,21 +93,23 @@ def fetch_abo():
     (out / "images").mkdir(parents=True, exist_ok=True)
     if not (out / "listings").exists():
         data = requests.get(f"{ABO_URL}/archives/abo-listings.tar", timeout=300).content
-        tarfile.open(fileobj=io.BytesIO(data)).extractall(out, filter="data")
+        with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+            tar.extractall(out, filter="data")
     if not (out / "images.csv.gz").exists():
         (out / "images.csv.gz").write_bytes(requests.get(f"{ABO_URL}/images/metadata/images.csv.gz", timeout=300).content)
     rows = []
     for f in sorted((out / "listings/metadata").glob("*.json.gz")):
-        for line in gzip.open(f, "rt"):
-            d = json.loads(line)
-            kind = d["product_type"][0]["value"] if d.get("product_type") else ""
-            if kind not in ABO_FOOTWEAR or not d.get("main_image_id"):
-                continue
-            names = d.get("item_name", [])
-            english = [n["value"] for n in names if n.get("language_tag", "").startswith("en")]
-            rows.append({"item_id": d["item_id"], "type": kind, "main_image_id": d["main_image_id"],
-                         "name": english[0] if english else None,
-                         "brand": (d.get("brand") or [{}])[0].get("value")})
+        with gzip.open(f, "rt") as lines:
+            for line in lines:
+                d = json.loads(line)
+                kind = d["product_type"][0]["value"] if d.get("product_type") else ""
+                if kind not in ABO_FOOTWEAR or not d.get("main_image_id"):
+                    continue
+                names = d.get("item_name", [])
+                english = [n["value"] for n in names if n.get("language_tag", "").startswith("en")]
+                rows.append({"item_id": d["item_id"], "type": kind, "main_image_id": d["main_image_id"],
+                             "name": english[0] if english else None,
+                             "brand": (d.get("brand") or [{}])[0].get("value")})
     listings = (pd.DataFrame(rows).sort_values("name", na_position="last")
                 .drop_duplicates("main_image_id").dropna(subset=["name"]))
     paths = pd.read_csv(out / "images.csv.gz").set_index("image_id").path
