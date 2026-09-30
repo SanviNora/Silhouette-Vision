@@ -10,7 +10,15 @@ def _attr(name, value, conf=0.9):
     return {"attribute": name, "value": value, "confidence": conf}
 
 
-def test_compare_attributes_same_similar_different_and_farfetch_trust():
+def test_near_types_count_as_similar():
+    from silhouette_vision.explain import _relation
+
+    assert _relation("article_type", "Heels", "Sandals") == "similar"
+    assert _relation("article_type", "Tops", "Tunics") == "similar"
+    assert _relation("article_type", "Tops", "Jeans") == "different"
+
+
+def test_compare_attributes_same_similar_different():
     query = [_attr("article_type", "Tops"), _attr("colour", "Navy Blue"), _attr("pattern", "Solid"),
              _attr("sleeve_length", "Sleeveless"), _attr("neck", "V-Neck", conf=0.3)]
     item = pd.Series({"pred_article_type": "Tops", "conf_article_type": 0.9,
@@ -18,7 +26,7 @@ def test_compare_attributes_same_similar_different_and_farfetch_trust():
                       "pred_pattern": "Striped", "conf_pattern": 0.7,
                       "pred_sleeve_length": "No Sleeves", "conf_sleeve_length": 0.9,
                       "pred_neck": "V-Neck", "conf_neck": 0.9})
-    rel = {c["label"]: c["relation"] for c in compare_attributes(query, item, "myntra")}
+    rel = {c["label"]: c["relation"] for c in compare_attributes(query, item)}
     assert rel == {"Type": "same", "Colour": "similar", "Pattern": "different", "Sleeves": "same"}
     # Neck is left out: the photo's prediction (30%) is not confident enough.
 

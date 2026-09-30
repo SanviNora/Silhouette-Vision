@@ -7,27 +7,34 @@ Output for encoder `name`, in artifacts/embeddings/<name>/:
 """
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from torch.utils.data import DataLoader, Dataset
+import torch
 
 from silhouette_vision.config import DATA_ROOT, path
 from silhouette_vision.encoders import Encoder
 from silhouette_vision.images import load_rgb
 
 
-class ImageDataset(Dataset):
-    def __init__(self, image_paths: list[str], transform):
-        self.image_paths = image_paths
-        self.transform = transform
+def _batches(paths: list[str], transform, batch_size: int, threads: int):
+    """Tensors of decoded images, batch by batch; the next batch is decoded (by a thread pool)
+    while the current one is on the GPU. Threads rather than DataLoader worker processes, as
+    in the LookBench runs: nothing to pickle or re-import in each worker on macOS."""
+    def decode(chunk):
+        return torch.stack(list(pool.map(lambda p: transform(load_rgb(DATA_ROOT / p)), chunk)))
 
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, i):
-        return self.transform(load_rgb(DATA_ROOT / self.image_paths[i]))
+    with ThreadPoolExecutor(threads) as pool, ThreadPoolExecutor(1) as ahead:
+        pending = None
+        for s in range(0, len(paths), batch_size):
+            future = ahead.submit(decode, paths[s:s + batch_size])
+            if pending is not None:
+                yield pending.result()
+            pending = future
+        if pending is not None:
+            yield pending.result()
 
 
 def embeddings_dir(name: str) -> Path:
@@ -39,7 +46,7 @@ def embed_catalog(
     catalog: pd.DataFrame,
     chunk_size: int = 4096,
     batch_size: int = 64,
-    num_workers: int = 6,
+    threads: int = 6,
 ) -> np.ndarray:
     out_dir = embeddings_dir(encoder.name)
     chunk_dir = out_dir / "chunks"
@@ -51,17 +58,10 @@ def embed_catalog(
     todo = [c for c in range(n_chunks) if not chunk_file(c).exists()]
     todo_paths = [p for c in todo for p in paths[c * chunk_size : (c + 1) * chunk_size]]
 
-    # One loader for all missing chunks: macOS workers re-import torch on start, so
-    # restarting them per chunk would waste several seconds each time.
-    loader = DataLoader(
-        ImageDataset(todo_paths, encoder.transform),
-        batch_size=batch_size,
-        num_workers=num_workers,
-    )
     start, done, parts = time.time(), 0, []
     chunks = iter(todo)
     current = next(chunks, None)
-    for batch in loader:
+    for batch in _batches(todo_paths, encoder.transform, batch_size, threads):
         parts.append(encoder.embed_pixels(batch))
         expected = len(paths[current * chunk_size : (current + 1) * chunk_size])
         if sum(len(p) for p in parts) == expected:

@@ -45,11 +45,11 @@ def test_ece_perfectly_calibrated_is_zero():
     assert expected_calibration_error(conf, correct) < 1e-9
 
 
-def test_item_tags_hide_untrusted_attributes_on_farfetch():
+def test_item_tags_skip_low_confidence_and_solid():
     row = pd.Series({"pred_colour": "Black", "conf_colour": 0.9, "pred_pattern": "Printed",
                      "conf_pattern": 0.8, "pred_sleeve_length": "Long Sleeves",
                      "conf_sleeve_length": 0.3, "pred_neck": None})
-    assert item_tags(row, "farfetch") == ["Black", "Printed"]  # low-confidence sleeves dropped
+    assert item_tags(row) == ["Black", "Printed"]  # low-confidence sleeves dropped
 
 
 def test_detector_items_drop_parts_inside_dress_and_whole_image_boxes():

@@ -7,7 +7,50 @@ project:
 # Dropped: Fashionpedia (street photos, not product shots; detailed attributes come from the
 # Myntra style JSONs + zero-shot prompts instead) and Branded Bottoms Resale (5k trousers-only listings; resale is out of scope).
 
+# Catalog refresh 2026-09-29: the app searches recent, shareable products only (2022-2026):
+# ZooClaw-Fashion, the LookBench studio gallery and Second-Hand Fashion. Myntra and Farfetch
+# became the local "legacy" catalog (attribute training, Phases 1-4 analyses).
+
 sources:
+  - id: zooclaw_fashion
+    name: ZooClaw-Fashion evaluation set
+    tier: core (search catalog)
+    role: recent multi-brand products (2026) with titles and brands; text-search benchmark
+    status: downloaded
+    observed: true
+    license: CC BY-NC 4.0 (credit SerendipityOne; non-commercial)
+    url: https://huggingface.co/datasets/srpone/zooclaw-fashion-eval
+    supports: [search catalog, brands, text-to-image benchmark (2,000 queries)]
+    limitations:
+      - 12,000 products; tops/bottoms/bags; almost no shoes
+      - brand names lowercase in the source
+
+  - id: amazon_berkeley_objects
+    name: Amazon Berkeley Objects (ABO), footwear subset
+    tier: core (search catalog)
+    role: shoes, boots and sandals; the recent sources carry almost no footwear
+    status: downloaded (listings + 6,068 main photos, 1024 px)
+    observed: true
+    license: CC BY 4.0 (Collins et al., CVPR 2022)
+    url: https://amazon-berkeley-objects.s3.amazonaws.com/index.html
+    supports: [search catalog (footwear), brands, titles]
+    limitations:
+      - listings c. 2019-2021 (older than the 2022-2026 sources)
+      - mostly Amazon own brands (find., Symbol, The Fix, 206 Collective)
+
+  - id: secondhand_fashion
+    name: Second-Hand Fashion Dataset v3 (Zenodo 10.5281/zenodo.13788681)
+    tier: core (search catalog)
+    role: everyday garments photographed 2022-2024 with brand, type, pattern, colour, resale band
+    status: downloaded (front photos + labels)
+    observed: true
+    license: CC BY 4.0 (Nauman et al., RISE, Wargön Innovation, Myrorna)
+    url: https://huggingface.co/datasets/chibifire/zenodo-second-hand-fashion-v3
+    supports: [search catalog, attribute validation labels, pre-owned items]
+    limitations:
+      - flat lays on a sorting table, rotated 90 degrees; rotated and centre-cropped
+      - Nordic mass-market brands; 35% have no brand
+
   - id: fashion_product_images
     name: Fashion Product Images Dataset (full; 1080x1440 / 1800x2400 images)
     tier: core
@@ -45,9 +88,11 @@ sources:
     observed: true
     license: Apache-2.0
     url: https://huggingface.co/datasets/srpone/look-bench
-    supports: [backbone selection, street-photo query evaluation, leaderboard comparison]
+    supports: [backbone selection, street-photo query evaluation, leaderboard comparison,
+               search catalog (1,048 studio-gallery products, 2025)]
     limitations:
       - benchmark authors also publish two of the candidate models
+      - its 58k "noise" distractors are Fashion200k (2017) images, not recent: not in the catalog
 
   - id: visuelle2
     name: Visuelle 2.0 (Nuna Lie)

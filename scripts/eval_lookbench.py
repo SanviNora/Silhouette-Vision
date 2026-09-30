@@ -130,6 +130,8 @@ def main():
     ap.add_argument("--subsets", nargs="+", default=SUBSETS)
     ap.add_argument("--limit", type=int, default=None, help="max queries per subset")
     ap.add_argument("--noise", action="store_true", help="add the 58k shared distractors")
+    ap.add_argument("--noise-sample", type=int, default=None,
+                    help="only a fixed random subset of the distractors (same for every model)")
     ap.add_argument("--out", default=None, help="report file name in artifacts/reports/")
     args = ap.parse_args()
 
@@ -137,10 +139,20 @@ def main():
     for name in args.models:
         encoder = load_encoder(name)
         noise = None
-        if args.noise:
+        if args.noise or args.noise_sample:
             blobs, meta = read_split(sorted((LOOKBENCH / "noise").glob("*.parquet")))
             t = time.time()
-            noise = (cached_embed(encoder, "noise", blobs), meta)
+            full = path("embeddings") / "lookbench" / encoder.name / "noise.npy"
+            if args.noise_sample:
+                pick = np.sort(np.random.default_rng(0).choice(len(blobs), args.noise_sample, replace=False))
+                meta = {k: v[pick] for k, v in meta.items()}
+                if full.exists():  # reuse the full cache when a model already has it
+                    emb = np.load(full).astype(np.float32)[pick]
+                else:
+                    emb = cached_embed(encoder, f"noise_sample{args.noise_sample}", [blobs[i] for i in pick])
+                noise = (emb, meta)
+            else:
+                noise = (cached_embed(encoder, "noise", blobs), meta)
             print(f"{name:22s} noise embedded: {len(blobs)} ({time.time() - t:.0f}s)", flush=True)
         for subset in args.subsets:
             t = time.time()

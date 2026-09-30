@@ -31,7 +31,7 @@ def main():
         encoder.name = f"{encoder.name}__{args.source}"
     if args.limit:
         encoder.name = f"{encoder.name}_smoke"
-    emb = embed_catalog(encoder, catalog, batch_size=args.batch_size, num_workers=args.workers)
+    emb = embed_catalog(encoder, catalog, batch_size=args.batch_size, threads=args.workers)
     print(f"done: {emb.shape} -> artifacts/embeddings/{encoder.name}/embeddings.npy")
 
 

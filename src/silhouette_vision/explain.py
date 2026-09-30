@@ -14,7 +14,7 @@ import pandas as pd
 import torch
 from PIL import Image
 
-from silhouette_vision.enrich import LABELS, TRUSTED_ON_FARFETCH
+from silhouette_vision.enrich import LABELS
 
 COMPARED = ["article_type", "colour", "pattern", "sleeve_length", "neck"]
 # Adjacent shades are the colour classifier's main error (Grey vs Black, Blue vs Navy Blue), so
@@ -25,6 +25,12 @@ COLOUR_FAMILY = {"Navy Blue": "Blue", "Turquoise Blue": "Blue", "Teal": "Blue", 
                  "Lavender": "Purple", "Khaki": "Beige", "Tan": "Brown", "Bronze": "Brown",
                  "Copper": "Brown", "Mustard": "Yellow", "Gold": "Yellow", "Olive": "Green"}
 SAME = {("No Sleeves", "Sleeveless")}
+# Types a shopper would call close: a block-heel mule sandal vs "Heels", a tunic vs a top.
+TYPE_FAMILY = {"Heels": "heeled", "Sandals": "heeled", "Flats": "flat", "Flip Flops": "flat",
+               "Sports Sandals": "flat", "Casual Shoes": "shoe", "Sports Shoes": "shoe",
+               "Formal Shoes": "shoe", "Tops": "top", "Tshirts": "top", "Tunics": "top",
+               "Shirts": "shirt", "Sweaters": "knit", "Sweatshirts": "knit", "Trousers": "trousers",
+               "Track Pants": "trousers", "Lounge Pants": "trousers", "Capris": "trousers"}
 
 
 def _relation(name: str, a: str, b: str) -> str:
@@ -32,16 +38,18 @@ def _relation(name: str, a: str, b: str) -> str:
         return "same"
     if name == "colour" and COLOUR_FAMILY.get(a, a) == COLOUR_FAMILY.get(b, b):
         return "similar"
+    if name == "article_type" and TYPE_FAMILY.get(a, a) == TYPE_FAMILY.get(b, b):
+        return "similar"
     return "different"
 
 
-def compare_attributes(query_attrs: list[dict], item_pred: pd.Series, source: str,
+def compare_attributes(query_attrs: list[dict], item_pred: pd.Series,
                        min_confidence: float = 0.5) -> list[dict]:
     """Confident attributes of the photo and the item side by side, with same/similar/different."""
     query = {a["attribute"]: a for a in query_attrs if a["confidence"] >= min_confidence}
     out = []
     for name in COMPARED:
-        if name not in query or (source == "farfetch" and name not in TRUSTED_ON_FARFETCH):
+        if name not in query:
             continue
         value = item_pred.get(f"pred_{name}")
         if not isinstance(value, str) or item_pred.get(f"conf_{name}", 0) < min_confidence:

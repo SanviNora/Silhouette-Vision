@@ -2,11 +2,10 @@
 
 ROOT is the repository (code, configs). DATA_ROOT holds data/ and artifacts/:
 - SILHOUETTE_DATA_ROOT, if set (a deploy bundle with the same layout, scripts/10_build_public.py);
-- else the repository, if the pipeline has been run here (local development);
-- else HOSTED: a fresh host (e.g. Streamlit Cloud) with no data. The app then downloads the public
-  bundle from DATA_REPO into a temp folder and runs in public mode, with no settings needed.
-PUBLIC (SILHOUETTE_PUBLIC=1, or HOSTED) leaves out the Farfetch catalog, whose license allows
-analysis and a private demo only.
+- else the repository, if it holds raw data (local development);
+- else HOSTED: a fresh host (e.g. Streamlit Cloud) with no data. The app then downloads the data
+  bundle (scripts/10_build_bundle.py) from DATA_REPO into a temp folder, with no settings needed.
+The app is the same locally and hosted: every catalog source may be shared.
 """
 
 import os
@@ -20,11 +19,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_REPO = os.environ.get("DATA_REPO", "Sanvii/silhouette-vision-data")
 if "SILHOUETTE_DATA_ROOT" in os.environ:
     DATA_ROOT, HOSTED = Path(os.environ["SILHOUETTE_DATA_ROOT"]), False
-elif (ROOT / "data/processed/catalog.parquet").exists():
+elif any((ROOT / "data/raw").glob("*/")):
     DATA_ROOT, HOSTED = ROOT, False
 else:
     DATA_ROOT, HOSTED = Path(tempfile.gettempdir()) / "silhouette_bundle", True
-PUBLIC = os.environ.get("SILHOUETTE_PUBLIC") == "1" or HOSTED
 
 
 @lru_cache

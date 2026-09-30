@@ -1,5 +1,51 @@
 # Phase 2 Results — Measuring Quality
 
+## Update 2026-09-29: measured again on the recent catalog (51,047 products)
+**Which model? Marqo stays.** ZooClaw-FashionSigLIP2 (2026, Apache-2.0; its authors' table puts
+it far ahead) was measured on identical data:
+
+| Test | Marqo-FashionSigLIP | ZooClaw-FashionSigLIP2 |
+|---|---|---|
+| Photo → exact product, LookBench studio + street (1,992 queries, 19k gallery) | R@1 49.4 | 50.2 |
+| Text → product, ZooClaw zero-shot short queries (12k products) | R@10 67.3 | 73.2 |
+| Text → product, long queries | R@10 76.9 | 78.3 |
+| Model size / speed | 0.8 GB, ~45 img/s | 1.5 GB, ~10 img/s (384 px) |
+
+Photo search (the app's main job) is a tie; blending both adds only 1–2 R@1 and needs both in
+memory. The published table understates Marqo: it reports R@10 43.9 on short queries where we
+measure 67.3, a reminder to re-measure rather than trust a model author's table.
+
+**Hybrid text search (shipped).** Cosine + 0.25 × TF-IDF match on brand, title and type, weight
+chosen on the other half of the queries (whole 51k catalog, zero-shot queries):
+
+| Queries | Embedding only R@1 / R@10 | Hybrid R@1 / R@10 |
+|---|---|---|
+| Long, LLM-written (fairer) | 34.2 / 65.1 | **61.7 / 83.6** |
+| Short (optimistic: written from titles) | 35.8 / 63.0 | **80.0 / 93.8** |
+
+Embeddings miss brand and product names ("levi's jeans" returned Levi's t-shirts); keywords fix
+that at no GPU cost. Side effect: short Second-Hand titles ("Striped t-shirt") match generic
+queries almost perfectly, so they dominate those results.
+
+**Rejected:** averaging each photo with its mirror image (R@1 −0.2 to 0, R@10 +0.4–0.9, twice
+the embedding cost).
+
+**Colour re-ranking re-checked** on Second-Hand colour labels: γ = 0.1 still the best trade-off
+(colour P@10 50.8 → 54.8, type −1.2 points; held-out half).
+
+**Catalog quality** (precision@10 of the 10 nearest products vs chance):
+
+| Source | Label | P@10 | Chance | Lift |
+|---|---|---|---|---|
+| Second-Hand | item type (33) | 60.7% | 7.5% | 8.1× |
+| Second-Hand | pattern | 68.4% | 13.3% | 5.1× |
+| Second-Hand | colour | 51.2% | 13.3% | 3.9× |
+| ZooClaw | brand (2,085) | 8.5% | 0.1% | 64× |
+| ZooClaw | type | 93.6% | 35.1% | 2.7× |
+| Amazon footwear | brand | 75.7% | 12.1% | 6.3× |
+| LookBench | type (41) | 67.1% | 4.6% | 14.7× |
+
+
 **Dates:** 2026-09-27/28 · **Hardware:** Apple M4, 16 GB · All numbers reproducible with the
 scripts named in each section.
 

@@ -12,14 +12,13 @@ def make_engine(n=50, dim=16, seed=0):
     engine = SearchEngine.__new__(SearchEngine)
     engine.catalog = pd.DataFrame({
         "item_id": [f"it_{i}" for i in range(n)],
-        "source": ["myntra", "farfetch"] * (n // 2),
+        "source": ["zooclaw", "secondhand"] * (n // 2),
         "category": ["bag", "shoes", "top", "dress", "other"] * (n // 5),
         "gender": ["Women"] * n,
         "is_preowned": [i % 7 == 0 for i in range(n)],
     })
     engine.embeddings = emb
     engine.colour_hists = None
-    engine.precise = None
     return engine
 
 
@@ -40,10 +39,10 @@ def test_exclude_removes_query_item():
 
 def test_filters_apply_inside_search():
     engine = make_engine()
-    f = Filters(sources=["farfetch"], categories=["bag", "shoes"])
+    f = Filters(sources=["secondhand"], categories=["bag", "shoes"])
     res = engine.search(engine.item_vector("it_0"), k=10, filters=f)
     assert len(res) == 10
-    assert set(res.source) == {"farfetch"}
+    assert set(res.source) == {"secondhand"}
     assert set(res.category) <= {"bag", "shoes"}
 
 
@@ -93,18 +92,3 @@ def test_colour_off_changes_nothing():
     a = engine.search(q, k=10)
     b = engine.search(q, k=10, query_colour=np.eye(8, dtype=np.float32)[1], colour_weight=0.0)
     assert a.item_id.tolist() == b.item_id.tolist()
-
-
-def test_precise_blend_limits_to_source_and_mixes_scores():
-    engine = make_engine()
-    rng = np.random.default_rng(5)
-    rows = np.flatnonzero(engine.catalog.source.values == "myntra")
-    second = rng.normal(size=(len(rows), 8)).astype(np.float32)
-    second /= np.linalg.norm(second, axis=1, keepdims=True)
-    engine.precise = (rows, second)
-    q1 = engine.item_vector("it_0")
-    q2 = second[0]  # it_0 is the first myntra row
-    res = engine.search(q1, k=5, precise_query=q2)
-    assert set(res.source) == {"myntra"}
-    assert res.item_id.iloc[0] == "it_0"
-    assert abs(res.score.iloc[0] - 1.0) < 1e-5  # 0.5 * 1 + 0.5 * 1

@@ -1,5 +1,49 @@
 # Phase 1 Results — Visual Search MVP
 
+## Update 2026-09-29: recent catalog (2022–2026)
+The search catalog was rebuilt from recent, shareable sources only; Myntra (median product year
+2012) and Farfetch (2019, no redistribution) became a local *legacy* catalog used to train the
+attribute heads and to reproduce the earlier analyses. One app, identical locally and online.
+
+| Source | Products | Years | License |
+|---|---|---|---|
+| ZooClaw-Fashion | 11,999 (2,086 brands, H&M to Versace) | 2026 | CC BY-NC 4.0 |
+| Second-Hand Fashion (RISE, Wargön, Myrorna) | 31,936 donated garments, 382 brands | 2022–2024 | CC BY 4.0 |
+| LookBench studio gallery | 1,048 | 2025 | Apache-2.0 |
+| Amazon Berkeley Objects, footwear | 6,064 shoes, boots, sandals (56 brands) | c. 2019–2021 | CC BY 4.0 |
+| **Total** | **51,047** | | |
+
+**Checks and decisions**
+- **LookBench's 58,275 "noise" images are not recent.** 27.6% of a random Fashion200k (2017)
+  sample has a near-identical copy (cosine ≥ 0.97) among them, which is what a random 58k-of-201k
+  slice of Fashion200k would give (29%); the real 2025 gallery matches 0%. Left out.
+- **Second-Hand photos** show garments lying sideways on a sorting table. On 2,000 garments
+  (scripts/exp_secondhand_view.py):
+
+  | Preparation | Type from 10 nearest neighbours | Zero-shot type |
+  |---|---|---|
+  | Raw photo | 50.7% | 47.3% |
+  | Rotated upright | 64.0% | 57.6% |
+  | **Rotated + centre crop (used)** | **65.6%** | **62.0%** |
+  | Rotated + garment-mask crop | 60.5% | 57.3% |
+  | Rotated + detector crop | 65.2% | 60.1% |
+
+  The simple crop won; the "smarter" crops failed on white garments against white tiles.
+- **Data cleaning:** "Missing" / "Not Applicable" brands blanked (3,535); 31 sliver-shaped photos
+  (aspect > 3:1) dropped; ZooClaw titles de-duplicated against the brand and stripped of sizes.
+- **Embedding precision** (LookBench, 62k-item gallery): 16-bit storage keeps R@1/R@10 identical
+  (55.39 vs 55.49 studio; 41.79 vs 41.79 street); 8-bit costs 0.2–0.4 R@1 for 4× less memory.
+  Embeddings are stored at 16 bit. With 45k products memory is no longer a constraint (~140 MB).
+
+**Test photos, before → after** (mean top-5 similarity 0.705 on the old public Myntra catalog →
+0.723 → **0.737** with footwear): clothing clearly improved (black mini dress → black slip/mini
+dresses; jeans → wide-leg jeans; polka dots → polka-dot tops). The recent sources had only 7
+shoes, so sneakers matched New Balance *sweatshirts* by logo. **Fix:** ABO footwear. Mules now
+return cream block-heel mules (top similarity 0.810, above the old Farfetch catalog's 0.793),
+sneakers return white chunky sneakers, burgundy slingbacks return pointed heels.
+ABO listings repeat one shoe across marketplaces and sizes: deduplicated by photo (16,818 → 6,068).
+
+
 **Date:** 2026-09-27 · **Model:** Marqo-FashionSigLIP (768-d) · **Catalog:** 229,522 products
 (41,906 Myntra + 187,616 Farfetch) · **Hardware:** Apple M4, 16 GB
 

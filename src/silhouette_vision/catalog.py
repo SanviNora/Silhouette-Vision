@@ -1,10 +1,13 @@
-"""Build the unified product catalog from Myntra and Farfetch.
+"""Product catalogs.
 
-One row per product, with image paths relative to the project root:
+Search catalog (data/processed/catalog.parquet): recent products, all shareable:
+  ZooClaw-Fashion (2026, CC BY-NC 4.0), LookBench gallery (2025, Apache-2.0),
+  Second-Hand Fashion (2022-24, CC BY 4.0), and footwear from Amazon Berkeley Objects
+  (c. 2019-2021, CC BY 4.0), because the recent sources carry almost no shoes.
+Legacy catalog (data/processed/legacy_catalog.parquet): Myntra (2007-2018, MIT) + Farfetch (2019,
+  scraped, analysis only). Kept locally to train the attribute heads and reproduce Phases 1-4.
 
-item_id | source | source_id | image_path | title | brand | gender | category | article_type |
-colour | price | currency | on_sale | discount_pct | is_preowned | stock | label | description |
-attributes (JSON) | year | season | usage
+One row per product, image paths relative to the project root.
 """
 
 import html
@@ -84,7 +87,8 @@ def build_myntra() -> pd.DataFrame:
     )
 
 
-def _farfetch_category(titles: pd.Series) -> pd.Series:
+def category_from_text(titles: pd.Series) -> pd.Series:
+    """Shared category from product words (taxonomy.yml title rules; first matching rule wins)."""
     rules = load_config("taxonomy")["farfetch_title_rules"]
     lower = titles.fillna("").str.lower()
     category = pd.Series("other", index=titles.index)
@@ -116,7 +120,7 @@ def build_farfetch() -> pd.DataFrame:
             "brand": brand.str.replace(r"\s+Pre-Owned$", "", regex=True),
             "is_preowned": brand.str.endswith("Pre-Owned", na=False),
             "gender": raw["gender"].str.title(),
-            "category": _farfetch_category(raw["shortDescription"]),
+            "category": category_from_text(raw["shortDescription"]),
             "article_type": None,
             "colour": None,
             "price": final.astype(float),
@@ -135,7 +139,7 @@ def build_farfetch() -> pd.DataFrame:
     return df[df.image_path.map(lambda p: (DATA_ROOT / p).exists())]
 
 
-COLUMNS = [
+LEGACY_COLUMNS = [
     "item_id", "source", "source_id", "image_path", "raw_image_path", "model_image_path",
     "title", "brand", "gender", "category", "article_type", "colour", "price", "initial_price",
     "currency", "on_sale", "discount_pct", "is_preowned", "stock", "label", "merchant_id",
@@ -143,12 +147,165 @@ COLUMNS = [
 ]
 
 
-def build_catalog() -> pd.DataFrame:
+def build_legacy_catalog() -> pd.DataFrame:
     df = pd.concat([build_myntra(), build_farfetch()], ignore_index=True)
+    for col in LEGACY_COLUMNS:
+        if col not in df:
+            df[col] = None
+    return df[LEGACY_COLUMNS].reset_index(drop=True)
+
+
+def load_legacy_catalog() -> pd.DataFrame:
+    return pd.read_parquet(DATA_ROOT / "data/processed/legacy_catalog.parquet")
+
+
+# --- search catalog: recent sources ---------------------------------------------------------
+ZOOCLAW_DIR = Path("data/raw/zooclaw")
+LOOKBENCH_DIR = Path("data/raw/lookbench/v20251201")
+SECONDHAND_DIR = Path("data/raw/secondhand")
+THUMBS = Path("data/processed/thumbs")
+
+COLUMNS = [
+    "item_id", "source", "source_id", "image_path", "raw_image_path", "title", "brand", "gender",
+    "category", "item_type", "colour", "pattern", "material", "price_band", "is_preowned", "year",
+]
+LICENSES = {"zooclaw": "CC BY-NC 4.0", "lookbench": "Apache-2.0", "secondhand": "CC BY 4.0", "abo": "CC BY 4.0"}
+KIDS = {"kids", "boys", "girls", "teen", "children", "baby", "youth", "toddler", "babies", "child",
+        "juniors"}
+UPPER = {"Mm6": "MM6", "Jw": "JW", "Dkny": "DKNY", "Ck": "CK", "Msgm": "MSGM", "Apc": "APC",
+         "A.p.c.": "A.P.C.", "Mcqueen": "McQueen", "Mccartney": "McCartney"}
+
+
+def _brand(name) -> str | None:
+    if not isinstance(name, str) or name.strip().lower() in {"", "not in the list", "unknown", "missing",
+                                                              "not applicable"}:
+        return None
+    cap = lambda w: w[:1].upper() + w[1:].lower()
+    words = [UPPER.get(cap(w), cap(w)) for w in name.strip().split()]
+    return " ".join(words).replace("H&m", "H&M").replace("J.crew", "J.Crew")
+
+
+def _gender(value) -> str | None:
+    v = (value or "").strip().lower()
+    if v in {"women", "woman", "ladies", "ladys", "female"}:
+        return "Women"
+    if v in {"men", "man", "male"}:
+        return "Men"
+    if v in {"unisex", "adults", "adult"}:
+        return "Unisex"
+    return "Kids" if v in KIDS else None
+
+
+def _clean_title(title: str, brand: str | None) -> str:
+    """Display title: without a leading brand name or a trailing size ("... - size m")."""
+    t = re.sub(r"\s+-\s+size\s+\S+$", "", title.strip(), flags=re.IGNORECASE)
+    if isinstance(brand, str) and t.lower().startswith(brand.lower() + " "):
+        t = t[len(brand) + 1:]
+    return t[:1].upper() + t[1:]
+
+
+def build_zooclaw() -> pd.DataFrame:
+    z = pd.read_parquet(DATA_ROOT / ZOOCLAW_DIR / "corpus.parquet")
+    sid = z.corpus_id.astype(str)
+    kind = z.category.map({"one-piece": "dress", "bottom": "bottoms"}).fillna(z.category)
+    return pd.DataFrame({
+        "item_id": "zc_" + sid, "source": "zooclaw", "source_id": sid,
+        "raw_image_path": str(ZOOCLAW_DIR / "images") + "/" + sid + ".jpg",
+        "title": [_clean_title(t, b) for t, b in zip(z.title, z.brand.map(_brand), strict=True)],
+        "brand": z.brand.map(_brand), "gender": z.demographic.map(_gender),
+        "category": kind.where(kind.isin(load_config("taxonomy")["categories"]), "other"),
+        "item_type": z.category, "is_preowned": False, "year": 2026,
+    })
+
+
+def build_lookbench() -> pd.DataFrame:
+    """The 1,078 products of LookBench's real studio gallery, one photo each. Its 58k "noise"
+    images are left out: they match Fashion200k (2017) near-exactly, so they are not recent."""
+    import pyarrow.parquet as pq
+
+    g = pq.read_table(DATA_ROOT / LOOKBENCH_DIR / "real_studio_flat/gallery.parquet",
+                      columns=["item_ID", "category", "main_attribute"]).to_pandas()
+    g = g.reset_index().drop_duplicates("item_ID")
+    words = g.main_attribute.fillna("").str.replace("_", " ")
+    kind = g.category.str.lower()
+    title = (words.where(~words.isin(["", "plain", "casual", "elegant"]), "") + " " + kind).str.strip()
+    sid = g.item_ID.astype(str)
+    return pd.DataFrame({
+        "item_id": "lb_" + sid, "source": "lookbench", "source_id": sid,
+        "raw_image_path": str(LOOKBENCH_DIR / "images") + "/" + sid + ".jpg",
+        "title": title, "brand": None, "gender": None, "category": category_from_text(kind),
+        "item_type": kind, "is_preowned": False, "year": 2025, "gallery_row": g["index"].values,
+    })
+
+
+def build_secondhand() -> pd.DataFrame:
+    d = pd.read_parquet(DATA_ROOT / SECONDHAND_DIR / "labels.parquet")
+    d = d[d.garment_id.map(lambda i: (DATA_ROOT / SECONDHAND_DIR / "images" / f"{i}.jpg").exists())]
+    sid = d.garment_id.astype(str)
+    kind = d["type"].fillna("")
+    pattern = d.pattern.where(~d.pattern.isin([None, "None", "Plain", "Other"]))
+    colour = d.colors.map(lambda c: str(c[0]).title() if c is not None and len(c) else None)
+    return pd.DataFrame({
+        "item_id": "sh_" + sid, "source": "secondhand", "source_id": sid,
+        "raw_image_path": str(SECONDHAND_DIR / "images") + "/" + sid + ".jpg",
+        "title": (pattern.fillna("").str.lower() + " " + kind.str.lower()).str.strip().str.capitalize(),
+        "brand": d.brand.map(_brand), "gender": d.category.map(_gender),
+        "category": category_from_text(kind), "item_type": kind, "colour": colour,
+        "pattern": pattern, "material": d.material, "price_band": d.price, "is_preowned": True,
+        "year": pd.to_numeric(d.timestamp.str[:4], errors="coerce").astype("Int64"),
+    })
+
+
+ABO_DIR = Path("data/raw/abo")
+GENDER_WORDS = {"women's": "Women", "womens": "Women", "men's": "Men", "mens": "Men", "girls'": "Kids",
+                "girl's": "Kids", "boys'": "Kids", "boy's": "Kids", "kids'": "Kids", "unisex": "Unisex",
+                "unisex-adult": "Unisex", "unisex-child": "Kids", "baby": "Kids"}
+
+
+def _abo_name(name: str, brand: str | None) -> dict:
+    """"Amazon Brand - The Fix Women's Kennedi Slouch Boot, Black, 8.5 B US" ->
+    brand The Fix, title "Kennedi Slouch Boot", gender Women, colour Black."""
+    brand = re.sub(r"^Amazon Brand\s*-?\s*", "", brand or "").strip() or None
+    name = re.sub(r"^Amazon Brand\s*-?\s*", "", name)
+    # Indian listings: "Beige Formal Shoes-9 UK (43 EU) (10 US) (AZ-SY-435)": drop size and codes
+    name = re.sub(r"[-\s]*\d+(\.\d+)?\s*(UK|US|EU)\b.*$", "", name)
+    name = re.sub(r"\s*\([^)]*\d[^)]*\)\s*$", "", name)
+    head, *rest = name.split(",")
+    if brand and head.lower().startswith(brand.lower()):
+        head = head[len(brand):]
+    gender = None
+    for word, g in GENDER_WORDS.items():
+        if re.search(rf"(?<!\w){re.escape(word)}(?!\w)", head, re.IGNORECASE):
+            gender = gender or g
+            head = re.sub(rf"(?<!\w){re.escape(word)}(?!\w)", "", head, flags=re.IGNORECASE)
+    colour = rest[0].strip(" ()") if rest and not re.search(r"\d", rest[0]) else None
+    title = re.sub(r"\s+", " ", head).strip(" -")
+    return {"brand": _brand(brand), "title": title[:1].upper() + title[1:], "gender": gender,
+            "colour": colour.split("(")[0].strip().title() if colour else None}
+
+
+def build_abo() -> pd.DataFrame:
+    """Footwear from Amazon Berkeley Objects (CC BY 4.0; listings c. 2019-2021)."""
+    a = pd.read_parquet(DATA_ROOT / ABO_DIR / "footwear.parquet")
+    a = a[a.main_image_id.map(lambda i: (DATA_ROOT / ABO_DIR / "images" / f"{i}.jpg").exists())]
+    parsed = pd.DataFrame([_abo_name(n, b) for n, b in zip(a.name, a.brand, strict=True)], index=a.index)
+    sid = a.main_image_id.astype(str)
+    return pd.DataFrame({
+        "item_id": "abo_" + sid, "source": "abo", "source_id": sid,
+        "raw_image_path": str(ABO_DIR / "images") + "/" + sid + ".jpg",
+        "title": parsed.title, "brand": parsed.brand, "gender": parsed.gender, "category": "shoes",
+        "item_type": a["type"].str.lower(), "colour": parsed.colour, "is_preowned": False, "year": 2021,
+    })
+
+
+def build_catalog() -> pd.DataFrame:
+    df = pd.concat([build_zooclaw(), build_lookbench(), build_secondhand(), build_abo()], ignore_index=True)
     for col in COLUMNS:
         if col not in df:
             df[col] = None
-    return df[COLUMNS].reset_index(drop=True)
+    df["image_path"] = str(THUMBS) + "/" + df.source + "/" + df.source_id + ".jpg"
+    df["license"] = df.source.map(LICENSES)
+    return df[[*COLUMNS, "license", "gallery_row"]].reset_index(drop=True)
 
 
 def load_catalog() -> pd.DataFrame:

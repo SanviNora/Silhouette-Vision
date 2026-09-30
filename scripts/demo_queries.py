@@ -1,6 +1,6 @@
 """Run a folder of query photos through search and save a result sheet per photo.
 
-Usage: python scripts/demo_queries.py "<folder of photos>" [--k 8] [--source farfetch]
+Usage: python scripts/demo_queries.py "<folder of photos>" [--k 8] [--source zooclaw]
 
 Each sheet shows the query on the left and the top-k matches with brand, title, price and
 similarity. Sheets go to artifacts/reports/demo_queries/ (git-ignored: they contain
@@ -65,7 +65,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("folder")
     ap.add_argument("--k", type=int, default=8)
-    ap.add_argument("--source", choices=["myntra", "farfetch"], default=None)
+    ap.add_argument("--source", choices=["zooclaw", "lookbench", "secondhand"], default=None)
     ap.add_argument("--colour", action="store_true", help="colour-aware re-ranking")
     ap.add_argument("--precise", action="store_true", help="Marqo + GR-Lite blend (Myntra only)")
     args = ap.parse_args()
