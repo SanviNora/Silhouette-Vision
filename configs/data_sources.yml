@@ -25,6 +25,19 @@ sources:
       - 12,000 products; tops/bottoms/bags; almost no shoes
       - brand names lowercase in the source
 
+  - id: amazon_berkeley_objects
+    name: Amazon Berkeley Objects (ABO), footwear subset
+    tier: core (search catalog)
+    role: shoes, boots and sandals; the recent sources carry almost no footwear
+    status: downloaded (listings + 6,068 main photos, 1024 px)
+    observed: true
+    license: CC BY 4.0 (Collins et al., CVPR 2022)
+    url: https://amazon-berkeley-objects.s3.amazonaws.com/index.html
+    supports: [search catalog (footwear), brands, titles]
+    limitations:
+      - listings c. 2019-2021 (older than the 2022-2026 sources)
+      - mostly Amazon own brands (find., Symbol, The Fix, 206 Collective)
+
   - id: secondhand_fashion
     name: Second-Hand Fashion Dataset v3 (Zenodo 10.5281/zenodo.13788681)
     tier: core (search catalog)

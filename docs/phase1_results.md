@@ -10,7 +10,8 @@ attribute heads and to reproduce the earlier analyses. One app, identical locall
 | ZooClaw-Fashion | 11,999 (2,086 brands, H&M to Versace) | 2026 | CC BY-NC 4.0 |
 | Second-Hand Fashion (RISE, Wargön, Myrorna) | 31,936 donated garments, 382 brands | 2022–2024 | CC BY 4.0 |
 | LookBench studio gallery | 1,048 | 2025 | Apache-2.0 |
-| **Total** | **44,983** | | |
+| Amazon Berkeley Objects, footwear | 6,064 shoes, boots, sandals (56 brands) | c. 2019–2021 | CC BY 4.0 |
+| **Total** | **51,047** | | |
 
 **Checks and decisions**
 - **LookBench's 58,275 "noise" images are not recent.** 27.6% of a random Fashion200k (2017)
@@ -35,9 +36,12 @@ attribute heads and to reproduce the earlier analyses. One app, identical locall
   Embeddings are stored at 16 bit. With 45k products memory is no longer a constraint (~140 MB).
 
 **Test photos, before → after** (mean top-5 similarity 0.705 on the old public Myntra catalog →
-0.723): clothing clearly improved (black mini dress → black slip/mini dresses; jeans → wide-leg
-jeans; polka dots → polka-dot tops). **Gap: shoes** (7 in the catalog): sneakers now match New
-Balance *sweatshirts* by logo, mules match heels and trousers.
+0.723 → **0.737** with footwear): clothing clearly improved (black mini dress → black slip/mini
+dresses; jeans → wide-leg jeans; polka dots → polka-dot tops). The recent sources had only 7
+shoes, so sneakers matched New Balance *sweatshirts* by logo. **Fix:** ABO footwear. Mules now
+return cream block-heel mules (top similarity 0.810, above the old Farfetch catalog's 0.793),
+sneakers return white chunky sneakers, burgundy slingbacks return pointed heels.
+ABO listings repeat one shoe across marketplaces and sizes: deduplicated by photo (16,818 → 6,068).
 
 
 **Date:** 2026-09-27 · **Model:** Marqo-FashionSigLIP (768-d) · **Catalog:** 229,522 products

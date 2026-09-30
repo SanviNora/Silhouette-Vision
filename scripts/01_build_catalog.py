@@ -65,9 +65,10 @@ def main():
         made = sum(pool.map(make_thumb, jobs, chunksize=128))
     print(f"thumbnails: {made:,} new, {len(jobs) - made:,} existing")
 
-    # A few source photos are thin slivers (bad crops upstream): drop anything beyond 3:1.
+    # A few source photos are thin slivers (bad crops upstream): drop anything beyond 3:1
+    # (4:1 for Amazon footwear, whose side views are naturally wide).
     ratio = [max(w / h, h / w) for w, h in (Image.open(ROOT / p).size for p in catalog.image_path)]
-    odd = [r > 3 for r in ratio]
+    odd = [r > (4 if src == "abo" else 3) for r, src in zip(ratio, catalog.source, strict=True)]
     print(f"dropped {sum(odd)} photos with aspect ratio > 3:1")
     catalog = catalog[[not o for o in odd]].reset_index(drop=True)
 

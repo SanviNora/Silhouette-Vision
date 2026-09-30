@@ -36,19 +36,29 @@ def catalog():
 
 def test_catalog_ids_unique_and_prefixed(catalog):
     assert catalog.item_id.is_unique
-    assert set(catalog.item_id.str.split("_").str[0]) == {"zc", "lb", "sh"}
+    assert set(catalog.item_id.str.split("_").str[0]) == {"zc", "lb", "sh", "abo"}
 
 
 def test_catalog_categories_licenses_and_years(catalog):
     assert set(catalog.category) <= set(load_config("taxonomy")["categories"])
     assert catalog.license.notna().all()
-    assert catalog.year.min() >= 2022  # recent products only
+    assert catalog.year.min() >= 2019  # recent products only (ABO footwear c. 2019-2021)
 
 
 def test_catalog_images_exist(catalog):
     sample = catalog.sample(200, random_state=0)
     missing = [p for p in sample.image_path if not (ROOT / p).exists()]
     assert not missing, missing[:5]
+
+
+def test_abo_names_split_into_brand_title_gender_colour():
+    from silhouette_vision.catalog import _abo_name
+
+    d = _abo_name("Amazon Brand - The Fix Women's Kennedi Pointed-Toe Slouch Boot, Black, 8.5 B US",
+                  "The Fix")
+    assert d == {"brand": "The Fix", "title": "Kennedi Pointed-Toe Slouch Boot", "gender": "Women",
+                 "colour": "Black"}
+    assert _abo_name("find. Men's Suede Low-Top Sneakers, 7 UK", "find.")["colour"] is None
 
 
 def test_brand_names_are_display_ready():

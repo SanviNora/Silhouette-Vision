@@ -72,7 +72,72 @@ def fetch_secondhand():
     print(f"secondhand: {len(labels):,} garments, {labels.brand.nunique():,} brands")
 
 
+ABO_URL = "https://amazon-berkeley-objects.s3.amazonaws.com"
+ABO_FOOTWEAR = {"SHOES", "BOOT", "SANDAL"}
+
+
+def fetch_abo():
+    """Footwear from Amazon Berkeley Objects (CC BY 4.0, Amazon listings c. 2019-2021): the
+    recent sources carry almost no shoes. One photo per product (listings repeat a shoe across
+    marketplaces and sizes), originals shrunk to 1024 px."""
+    import gzip
+    import io
+    import json
+    import tarfile
+    from concurrent.futures import ThreadPoolExecutor
+
+    import requests
+    from PIL import Image
+
+    out = RAW / "abo"
+    (out / "images").mkdir(parents=True, exist_ok=True)
+    if not (out / "listings").exists():
+        data = requests.get(f"{ABO_URL}/archives/abo-listings.tar", timeout=300).content
+        tarfile.open(fileobj=io.BytesIO(data)).extractall(out, filter="data")
+    if not (out / "images.csv.gz").exists():
+        (out / "images.csv.gz").write_bytes(requests.get(f"{ABO_URL}/images/metadata/images.csv.gz", timeout=300).content)
+    rows = []
+    for f in sorted((out / "listings/metadata").glob("*.json.gz")):
+        for line in gzip.open(f, "rt"):
+            d = json.loads(line)
+            kind = d["product_type"][0]["value"] if d.get("product_type") else ""
+            if kind not in ABO_FOOTWEAR or not d.get("main_image_id"):
+                continue
+            names = d.get("item_name", [])
+            english = [n["value"] for n in names if n.get("language_tag", "").startswith("en")]
+            rows.append({"item_id": d["item_id"], "type": kind, "main_image_id": d["main_image_id"],
+                         "name": english[0] if english else None,
+                         "brand": (d.get("brand") or [{}])[0].get("value")})
+    listings = (pd.DataFrame(rows).sort_values("name", na_position="last")
+                .drop_duplicates("main_image_id").dropna(subset=["name"]))
+    paths = pd.read_csv(out / "images.csv.gz").set_index("image_id").path
+
+    def get(image_id):
+        dst = out / "images" / f"{image_id}.jpg"
+        if dst.exists():
+            return
+        import time
+
+        for attempt in range(4):  # the S3 endpoint occasionally resets connections
+            try:
+                r = requests.get(f"{ABO_URL}/images/original/{paths[image_id]}", timeout=60)
+                img = Image.open(io.BytesIO(r.content)).convert("RGB")
+                break
+            except (requests.RequestException, OSError):
+                time.sleep(2 ** attempt)
+        else:
+            return
+        img.thumbnail((1024, 1024))
+        img.save(dst, quality=92)
+
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(get, listings.main_image_id))
+    listings = listings[listings.main_image_id.map(lambda i: (out / "images" / f"{i}.jpg").exists())]
+    listings.to_parquet(out / "footwear.parquet", index=False)
+    print(f"abo: {len(listings):,} footwear products, {listings.brand.nunique()} brands")
+
+
 if __name__ == "__main__":
-    which = sys.argv[1:] or ["zooclaw", "secondhand"]
+    which = sys.argv[1:] or ["zooclaw", "secondhand", "abo"]
     for name in which:
-        {"zooclaw": fetch_zooclaw, "secondhand": fetch_secondhand}[name]()
+        {"zooclaw": fetch_zooclaw, "secondhand": fetch_secondhand, "abo": fetch_abo}[name]()

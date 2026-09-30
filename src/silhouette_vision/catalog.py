@@ -1,8 +1,9 @@
 """Product catalogs.
 
-Search catalog (data/processed/catalog.parquet): recent products, 2022-2026, all shareable:
+Search catalog (data/processed/catalog.parquet): recent products, all shareable:
   ZooClaw-Fashion (2026, CC BY-NC 4.0), LookBench gallery (2025, Apache-2.0),
-  Second-Hand Fashion (2022-23, CC BY 4.0).
+  Second-Hand Fashion (2022-24, CC BY 4.0), and footwear from Amazon Berkeley Objects
+  (c. 2019-2021, CC BY 4.0), because the recent sources carry almost no shoes.
 Legacy catalog (data/processed/legacy_catalog.parquet): Myntra (2007-2018, MIT) + Farfetch (2019,
   scraped, analysis only). Kept locally to train the attribute heads and reproduce Phases 1-4.
 
@@ -168,7 +169,7 @@ COLUMNS = [
     "item_id", "source", "source_id", "image_path", "raw_image_path", "title", "brand", "gender",
     "category", "item_type", "colour", "pattern", "material", "price_band", "is_preowned", "year",
 ]
-LICENSES = {"zooclaw": "CC BY-NC 4.0", "lookbench": "Apache-2.0", "secondhand": "CC BY 4.0"}
+LICENSES = {"zooclaw": "CC BY-NC 4.0", "lookbench": "Apache-2.0", "secondhand": "CC BY 4.0", "abo": "CC BY 4.0"}
 KIDS = {"kids", "boys", "girls", "teen", "children", "baby", "youth", "toddler", "babies", "child",
         "juniors"}
 UPPER = {"Mm6": "MM6", "Jw": "JW", "Dkny": "DKNY", "Ck": "CK", "Msgm": "MSGM", "Apc": "APC",
@@ -254,8 +255,50 @@ def build_secondhand() -> pd.DataFrame:
     })
 
 
+ABO_DIR = Path("data/raw/abo")
+GENDER_WORDS = {"women's": "Women", "womens": "Women", "men's": "Men", "mens": "Men", "girls'": "Kids",
+                "girl's": "Kids", "boys'": "Kids", "boy's": "Kids", "kids'": "Kids", "unisex": "Unisex",
+                "unisex-adult": "Unisex", "unisex-child": "Kids", "baby": "Kids"}
+
+
+def _abo_name(name: str, brand: str | None) -> dict:
+    """"Amazon Brand - The Fix Women's Kennedi Slouch Boot, Black, 8.5 B US" ->
+    brand The Fix, title "Kennedi Slouch Boot", gender Women, colour Black."""
+    brand = re.sub(r"^Amazon Brand\s*-?\s*", "", brand or "").strip() or None
+    name = re.sub(r"^Amazon Brand\s*-?\s*", "", name)
+    # Indian listings: "Beige Formal Shoes-9 UK (43 EU) (10 US) (AZ-SY-435)": drop size and codes
+    name = re.sub(r"[-\s]*\d+(\.\d+)?\s*(UK|US|EU)\b.*$", "", name)
+    name = re.sub(r"\s*\([^)]*\d[^)]*\)\s*$", "", name)
+    head, *rest = name.split(",")
+    if brand and head.lower().startswith(brand.lower()):
+        head = head[len(brand):]
+    gender = None
+    for word, g in GENDER_WORDS.items():
+        if re.search(rf"(?<!\w){re.escape(word)}(?!\w)", head, re.IGNORECASE):
+            gender = gender or g
+            head = re.sub(rf"(?<!\w){re.escape(word)}(?!\w)", "", head, flags=re.IGNORECASE)
+    colour = rest[0].strip(" ()") if rest and not re.search(r"\d", rest[0]) else None
+    title = re.sub(r"\s+", " ", head).strip(" -")
+    return {"brand": _brand(brand), "title": title[:1].upper() + title[1:], "gender": gender,
+            "colour": colour.split("(")[0].strip().title() if colour else None}
+
+
+def build_abo() -> pd.DataFrame:
+    """Footwear from Amazon Berkeley Objects (CC BY 4.0; listings c. 2019-2021)."""
+    a = pd.read_parquet(DATA_ROOT / ABO_DIR / "footwear.parquet")
+    a = a[a.main_image_id.map(lambda i: (DATA_ROOT / ABO_DIR / "images" / f"{i}.jpg").exists())]
+    parsed = pd.DataFrame([_abo_name(n, b) for n, b in zip(a.name, a.brand, strict=True)], index=a.index)
+    sid = a.main_image_id.astype(str)
+    return pd.DataFrame({
+        "item_id": "abo_" + sid, "source": "abo", "source_id": sid,
+        "raw_image_path": str(ABO_DIR / "images") + "/" + sid + ".jpg",
+        "title": parsed.title, "brand": parsed.brand, "gender": parsed.gender, "category": "shoes",
+        "item_type": a["type"].str.lower(), "colour": parsed.colour, "is_preowned": False, "year": 2021,
+    })
+
+
 def build_catalog() -> pd.DataFrame:
-    df = pd.concat([build_zooclaw(), build_lookbench(), build_secondhand()], ignore_index=True)
+    df = pd.concat([build_zooclaw(), build_lookbench(), build_secondhand(), build_abo()], ignore_index=True)
     for col in COLUMNS:
         if col not in df:
             df[col] = None

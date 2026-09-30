@@ -28,18 +28,20 @@ ABOUT = """
 Portfolio project, not affiliated with any brand or retailer.
 [Code and results](https://github.com/SanviNora/Silhouette-Vision)
 
-**Products (2022–2026)**
+**Products (2019–2026)**
 - *ZooClaw-Fashion* (2026), SerendipityOne, CC BY-NC 4.0.
 - *LookBench* studio gallery (2025), Apache-2.0.
 - *Second-Hand Fashion* (2022–24), Nauman et al., RISE, Wargön Innovation and Myrorna,
   CC BY 4.0 (doi:10.5281/zenodo.13788681).
+- Footwear: *Amazon Berkeley Objects* (c. 2019–21), Collins et al., CVPR 2022, CC BY 4.0.
 
 **Demand:** *Visuelle 2.0*, Skenderi et al., CVPR Workshops 2022, CC BY-NC-SA 4.0.
 
 **Models:** Marqo-FashionSigLIP, YOLOS-Fashionpedia. Attribute heads trained on Fashion
 Product Images (Myntra, MIT).
 """
-SOURCE_LABEL = {"zooclaw": "ZooClaw", "lookbench": "LookBench", "secondhand": "Second-hand"}
+SOURCE_LABEL = {"zooclaw": "ZooClaw", "lookbench": "LookBench", "secondhand": "Second-hand",
+                "abo": "Amazon"}
 
 
 # "Precise match" loads a second 1.2 GB model: off on hosted/small machines (SILHOUETTE_PRECISE).
@@ -187,7 +189,8 @@ def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     )
     preowned = {"Any": None, "New": False, "Pre-owned": True}[condition]
     st.sidebar.caption(
-        f"{len(cat):,} products from 2022–2026 · ZooClaw-Fashion, LookBench, Second-Hand Fashion. "
+        f"{len(cat):,} products, 2019–2026 · ZooClaw-Fashion, LookBench, Second-Hand Fashion, "
+        "Amazon Berkeley Objects (shoes). "
         "Model: Marqo-FashionSigLIP."
     )
     with st.sidebar.expander("About & credits"):
