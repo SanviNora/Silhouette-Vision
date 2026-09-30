@@ -10,6 +10,14 @@ def _attr(name, value, conf=0.9):
     return {"attribute": name, "value": value, "confidence": conf}
 
 
+def test_near_types_count_as_similar():
+    from silhouette_vision.explain import _relation
+
+    assert _relation("article_type", "Heels", "Sandals") == "similar"
+    assert _relation("article_type", "Tops", "Tunics") == "similar"
+    assert _relation("article_type", "Tops", "Jeans") == "different"
+
+
 def test_compare_attributes_same_similar_different():
     query = [_attr("article_type", "Tops"), _attr("colour", "Navy Blue"), _attr("pattern", "Solid"),
              _attr("sleeve_length", "Sleeveless"), _attr("neck", "V-Neck", conf=0.3)]

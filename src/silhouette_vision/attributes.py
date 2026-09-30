@@ -44,6 +44,12 @@ ATTRIBUTES = [
 MISSING = {"", "NA", "N/A", "None", None}
 
 
+# Indian ethnic-wear types exist in Myntra but in none of the 2022-2026 search catalog sources:
+# kept as classes they labelled western tops "Kurtis" on uploaded photos.
+NOT_IN_CATALOG_TYPES = {"Kurtas", "Kurtis", "Kurta Sets", "Sarees", "Dupatta", "Lehenga Choli",
+                        "Salwar", "Churidar", "Patiala", "Salwar and Dupatta"}
+
+
 def label_frame(catalog: pd.DataFrame) -> pd.DataFrame:
     """One column per attribute for Myntra rows; rare or missing labels become NaN."""
     myntra = catalog[catalog.source == "myntra"]
@@ -52,6 +58,8 @@ def label_frame(catalog: pd.DataFrame) -> pd.DataFrame:
     for attr in ATTRIBUTES:
         raw = parsed.map(lambda d, k=attr.json_key: d.get(k)) if attr.json_key else myntra[attr.name]
         raw = raw.where(~raw.isin(MISSING))
+        if attr.name == "article_type":
+            raw = raw.where(~raw.isin(NOT_IN_CATALOG_TYPES))
         counts = raw.value_counts()
         out[attr.name] = raw.where(raw.isin(counts[counts >= MIN_CLASS_COUNT].index))
     return out

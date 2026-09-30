@@ -1,5 +1,30 @@
 # Phase 4 Results — Explaining Results
 
+## Update 2026-09-29: re-validated on the recent catalog (51,047 products)
+**Exact-match likelihood** (calibrator unchanged: same Marqo model, fitted on LookBench):
+
+| Check | Result |
+|---|---|
+| LookBench studio photos of products **in** the catalog (985 queries vs all 51k) | exact #1 48.9%; P ≥ 0.8 → 88% precision (22% of queries); P ≥ 0.9 → 93% |
+| Street photos of products **not** in the catalog (954) | wrongly claimed exact: 4.3% at P ≥ 0.5, **0.1% at P ≥ 0.8** |
+| Degraded catalog photos (crop, 70% resize, JPEG q60, brightness; 400) | original #1 in **95.8%** (86.2% on the old catalog) |
+
+LookBench numbers items per subset (street item 3 is not studio item 3; shared ids share a
+category only 37% of the time), so its street queries show products the catalog does not have:
+a free test of false "exact" claims. The "Precise match" calibrator was removed with the feature.
+
+**Named models:** 440 products from the listed luxury brands (Burberry, Fendi, Chloé, Gucci…);
+28 of the 161 models have catalog listings (e.g. Celine Triomphe ×8, Hermès Kelly and Birkin,
+Lady Dior). The others show "not stocked" with a web-search link. Recognition itself is
+catalog-independent (the LV Pochette Félicie photo still scores 93%).
+
+**Why it matches:** attribute comparison now uses one trust rule for all sources; types in one
+family count as "≈ similar" (block-heel mule sandal vs "Heels", tunic vs top). Ethnic-wear types
+that no recent source contains (Kurtis, Kurtas, Sarees, Dupatta) were removed from the type head:
+an uploaded polka-dot top was called "Kurtis 54%", now "Tops 100%"; Myntra type macro-F1
+81.9 → 83.1, Second-Hand type 79.6% → 80.7%.
+
+
 ## 4.1 Exact-match confidence (scripts/06_match_confidence.py, src/silhouette_vision/match.py)
 **Question a shopper asks:** "Is this the exact product in my photo, or just something similar?"
 

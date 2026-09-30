@@ -173,7 +173,7 @@ LICENSES = {"zooclaw": "CC BY-NC 4.0", "lookbench": "Apache-2.0", "secondhand": 
 KIDS = {"kids", "boys", "girls", "teen", "children", "baby", "youth", "toddler", "babies", "child",
         "juniors"}
 UPPER = {"Mm6": "MM6", "Jw": "JW", "Dkny": "DKNY", "Ck": "CK", "Msgm": "MSGM", "Apc": "APC",
-         "A.p.c.": "A.P.C.", "Hugo Boss": "Hugo Boss"}
+         "A.p.c.": "A.P.C.", "Mcqueen": "McQueen", "Mccartney": "McCartney"}
 
 
 def _brand(name) -> str | None:

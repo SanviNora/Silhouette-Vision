@@ -25,12 +25,20 @@ COLOUR_FAMILY = {"Navy Blue": "Blue", "Turquoise Blue": "Blue", "Teal": "Blue", 
                  "Lavender": "Purple", "Khaki": "Beige", "Tan": "Brown", "Bronze": "Brown",
                  "Copper": "Brown", "Mustard": "Yellow", "Gold": "Yellow", "Olive": "Green"}
 SAME = {("No Sleeves", "Sleeveless")}
+# Types a shopper would call close: a block-heel mule sandal vs "Heels", a tunic vs a top.
+TYPE_FAMILY = {"Heels": "heeled", "Sandals": "heeled", "Flats": "flat", "Flip Flops": "flat",
+               "Sports Sandals": "flat", "Casual Shoes": "shoe", "Sports Shoes": "shoe",
+               "Formal Shoes": "shoe", "Tops": "top", "Tshirts": "top", "Tunics": "top",
+               "Shirts": "shirt", "Sweaters": "knit", "Sweatshirts": "knit", "Trousers": "trousers",
+               "Track Pants": "trousers", "Lounge Pants": "trousers", "Capris": "trousers"}
 
 
 def _relation(name: str, a: str, b: str) -> str:
     if a == b or (a, b) in SAME or (b, a) in SAME:
         return "same"
     if name == "colour" and COLOUR_FAMILY.get(a, a) == COLOUR_FAMILY.get(b, b):
+        return "similar"
+    if name == "article_type" and TYPE_FAMILY.get(a, a) == TYPE_FAMILY.get(b, b):
         return "similar"
     return "different"
 

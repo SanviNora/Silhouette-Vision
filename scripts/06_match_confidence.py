@@ -6,11 +6,15 @@ true products are known: for the top-10 results of each query, label = result is
 Fitted on even-indexed queries, evaluated on odd-indexed ones (reliability table, ECE, and
 precision/recall of "exact match" claims at several thresholds).
 
-A second check simulates "a photo found online": catalog images are cropped, shrunk,
-JPEG-compressed and brightened, then searched; the original should come back first with high
-confidence.
+Checks on the search catalog itself:
+  - LookBench's studio products are in the catalog, so its real studio query photos are searched
+    against all 51k products: is the calibration still right there? Its street queries show
+    *other* products (LookBench numbers items per subset: street item 3 is not studio item 3), so
+    they test the opposite case, a product the catalog does not have: how often is "exact" claimed?
+  - "a photo found online": catalog images are cropped, shrunk, JPEG-compressed and brightened,
+    then searched; the original should come back first with high confidence.
 
-Output: artifacts/models/match_confidence.json (one calibrator per scoring mode)
+Output: artifacts/models/match_confidence.json
 Usage: python scripts/06_match_confidence.py [--robustness 400]
 """
 
@@ -20,12 +24,14 @@ import json
 from itertools import pairwise
 
 import numpy as np
+import pandas as pd
 import pyarrow.parquet as pq
 from PIL import Image, ImageEnhance
 from sklearn.linear_model import LogisticRegression
 
 from silhouette_vision.catalog import load_catalog
 from silhouette_vision.config import ROOT, path
+from silhouette_vision.embed import load_embeddings
 from silhouette_vision.images import load_rgb
 from silhouette_vision.search import SearchEngine
 
@@ -94,6 +100,44 @@ def calibrate(X, y):
                 "base_rate": float(y.mean()), "test_ece": ece, "reliability": table, "claims": claims}
 
 
+def _pct(x: float | None) -> str:
+    return "-" if x is None else f"{100 * x:.0f}%"
+
+
+def catalog_check(lr) -> dict:
+    """Studio queries (product in the catalog as lb_<item_ID>): exact top-1 rate and calibration.
+    Street queries (product not in the catalog): share of photos wrongly claimed exact."""
+    catalog = load_catalog()
+    emb = load_embeddings("marqo_fashion_siglip", catalog)
+    row_of = pd.Series(np.arange(len(catalog)), index=catalog.item_id)
+    result = {}
+    for subset in ["real_studio_flat", "real_streetlook"]:
+        q = np.load(path("embeddings") / "lookbench" / "marqo_fashion_siglip" / f"{subset}_query.npy").astype(np.float32)
+        ids = pq.read_table(LB / subset / "query.parquet", columns=["item_ID"]).column(0).to_pylist()
+        keep = np.array([f"lb_{i}" in row_of for i in ids])
+        q, target = q[keep], row_of[[f"lb_{i}" for i, k in zip(ids, keep, strict=True) if k]].values
+        sims = q @ emb.T
+        top = np.argsort(-sims, 1)[:, :5]
+        exact = top[:, 0] == target
+        p = lr.predict_proba(features(np.take_along_axis(sims, top, 1)))[:, 1]
+        table, ece = reliability(p, exact)
+        claims = {t: {"share": float((p >= t).mean()),
+                      "precision": float(exact[p >= t].mean()) if (p >= t).any() else None} for t in (0.5, 0.8, 0.9)}
+        if subset == "real_streetlook":  # product absent: any "exact" claim is false
+            result["absent_product_street"] = {"queries": int(keep.sum()),
+                                               "false_claims": {t: c["share"] for t, c in claims.items()}}
+            print(f"[catalog] street photos of products NOT in the catalog ({keep.sum()}): claimed exact "
+                  + ", ".join(f"P>={t}: {100 * c['share']:.1f}%" for t, c in claims.items()))
+            continue
+        result["in_catalog_studio"] = {"queries": int(keep.sum()), "exact_top1": float(exact.mean()),
+                                       "ece": ece, "claims": claims, "reliability": table}
+        print(f"[catalog] studio photos of products in the catalog ({keep.sum()} vs {len(catalog):,}): exact #1 "
+              f"{100 * exact.mean():.1f}%, ECE {ece:.3f}, "
+              + ", ".join(f"P>={t}: {100 * c['share']:.0f}% of queries, precision {_pct(c['precision'])}"
+                          for t, c in claims.items()))
+    return result
+
+
 def degrade(img: Image.Image, rng) -> Image.Image:
     w, h = img.size
     f = rng.uniform(0.85, 0.95)
@@ -112,8 +156,7 @@ def main():
     args = ap.parse_args()
 
     out, models = {}, {}
-    for mode, model, other in [("marqo", "marqo_fashion_siglip", None),
-                               ("precise", "marqo_fashion_siglip", "gr_lite")]:
+    for mode, model, other in [("marqo", "marqo_fashion_siglip", None)]:
         lr, res = calibrate(*lookbench_top1(model, other))
         out[mode], models[mode] = res, lr
         print(f"\n[{mode}] top-1 is exact for {100 * res['base_rate']:.1f}% of queries; "
@@ -126,8 +169,10 @@ def main():
             print(f"   say 'exact match' when P >= {t}: {100 * c['share_of_queries']:5.1f}% of queries, "
                   f"precision {prec}")
 
+    out["catalog_lookbench"] = catalog_check(models["marqo"])
+
     # Robustness: degraded catalog photos should find themselves, confidently.
-    engine = SearchEngine()
+    engine = SearchEngine(precise=False)
     rng = np.random.default_rng(0)
     catalog = load_catalog()
     picks = rng.choice(len(catalog), args.robustness, replace=False)
