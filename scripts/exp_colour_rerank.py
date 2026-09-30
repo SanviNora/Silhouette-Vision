@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-from silhouette_vision.catalog import load_catalog
+from silhouette_vision.catalog import load_legacy_catalog
 from silhouette_vision.colour import colour_hist
 from silhouette_vision.config import ROOT, path
 from silhouette_vision.embed import load_embeddings
@@ -44,8 +44,8 @@ def main():
     ap.add_argument("--queries", type=int, default=4000)
     args = ap.parse_args()
 
-    catalog = load_catalog()
-    emb = load_embeddings("marqo_fashion_siglip", catalog)
+    catalog = load_legacy_catalog()
+    emb = load_embeddings("marqo_fashion_siglip__legacy", catalog)
     idx = np.flatnonzero(catalog.source.values == "myntra")
     sub, sub_emb = catalog.iloc[idx].reset_index(drop=True), emb[idx]
 

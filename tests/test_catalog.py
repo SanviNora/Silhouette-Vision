@@ -1,10 +1,7 @@
-import json
-
-import numpy as np
 import pandas as pd
 import pytest
 
-from silhouette_vision.catalog import _farfetch_category
+from silhouette_vision.catalog import category_from_text
 from silhouette_vision.config import ROOT, load_config
 
 CATALOG = ROOT / "data/processed/catalog.parquet"
@@ -16,7 +13,7 @@ def test_farfetch_title_rules_prefer_specific_matches():
         "Teddy Bear logo shoulder bag", "gold hoop earrings", "cashmere sweater",
         "high-waisted jeans", "Nautico tiger print bikini", "Metropolis",
     ])
-    assert _farfetch_category(titles).tolist() == [
+    assert category_from_text(titles).tolist() == [
         "dress", "outerwear", "shoes", "bag", "jewellery", "top", "bottoms", "other", "other",
     ]
 
@@ -39,13 +36,13 @@ def catalog():
 
 def test_catalog_ids_unique_and_prefixed(catalog):
     assert catalog.item_id.is_unique
-    assert set(catalog.item_id.str.split("_").str[0]) == {"myn", "ff"}
+    assert set(catalog.item_id.str.split("_").str[0]) == {"zc", "lb", "sh"}
 
 
-def test_catalog_categories_and_currency(catalog):
+def test_catalog_categories_licenses_and_years(catalog):
     assert set(catalog.category) <= set(load_config("taxonomy")["categories"])
-    currency = catalog.groupby("source").currency.unique().apply(list).to_dict()
-    assert currency == {"farfetch": ["SGD"], "myntra": ["INR"]}
+    assert catalog.license.notna().all()
+    assert catalog.year.min() >= 2022  # recent products only
 
 
 def test_catalog_images_exist(catalog):
@@ -54,11 +51,9 @@ def test_catalog_images_exist(catalog):
     assert not missing, missing[:5]
 
 
-def test_catalog_attributes_are_json(catalog):
-    parsed = catalog.attributes.head(500).map(json.loads)
-    assert parsed.map(lambda d: isinstance(d, dict)).all()
+def test_brand_names_are_display_ready():
+    from silhouette_vision.catalog import _brand
 
-
-def test_prices_positive(catalog):
-    assert (catalog.price.dropna() > 0).all()
-    assert np.isfinite(catalog.price.dropna()).all()
+    assert _brand("h&m") == "H&M"
+    assert _brand("mm6 maison margiela") == "MM6 Maison Margiela"
+    assert _brand("Not in the list") is None and _brand("") is None

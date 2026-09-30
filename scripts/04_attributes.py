@@ -37,14 +37,14 @@ from silhouette_vision.attributes import (
     prompt_texts,
     zero_shot,
 )
-from silhouette_vision.catalog import load_catalog
+from silhouette_vision.catalog import load_legacy_catalog
 from silhouette_vision.config import ROOT, path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.encoders import load_encoder
 
 
 def features(kind: str, catalog: pd.DataFrame) -> np.ndarray:
-    marqo = load_embeddings("marqo_fashion_siglip", catalog)
+    marqo = load_embeddings("marqo_fashion_siglip__legacy", catalog)
     if kind == "marqo":
         return marqo
     myntra = catalog[catalog.source == "myntra"].reset_index(drop=True)
@@ -88,7 +88,7 @@ def main():
     ap.add_argument("--features", choices=["marqo", "gr_lite", "concat"], default="marqo")
     args = ap.parse_args()
 
-    catalog = load_catalog()
+    catalog = load_legacy_catalog()
     X_all = features(args.features, catalog)
     labels = label_frame(catalog)
     split = group_split(catalog.loc[labels.index])

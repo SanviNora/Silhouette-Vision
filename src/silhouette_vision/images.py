@@ -24,3 +24,16 @@ def load_rgb(path: str | Path, max_side: int | None = None) -> Image.Image:
     if max_side and max(img.size) > max_side:
         img.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
     return img
+
+
+def secondhand_view(img: Image.Image) -> Image.Image:
+    """Second-Hand Fashion photo -> the garment, upright.
+
+    Garments lie sideways (collar pointing right) on a sorting table and fill 20-50% of the
+    frame. Rotating upright and cropping the centre raised type 10-NN agreement from 50.7% to
+    65.6% and zero-shot type accuracy from 47.3% to 62.0% on 2,000 garments; a garment-mask
+    crop and a detector crop did worse or no better (scripts/exp_secondhand_view.py).
+    """
+    img = img.convert("RGB").rotate(90, expand=True)
+    w, h = img.size
+    return img.crop((int(0.08 * w), int(0.18 * h), int(0.92 * w), int(0.82 * h)))

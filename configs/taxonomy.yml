@@ -55,11 +55,11 @@ myntra:
 # so more specific rules (e.g. "shirt dress") come first.
 farfetch_title_rules:
   - [dress, "dress|gown|jumpsuit|playsuit|kaftan"]
-  - [outerwear, "jacket|coat|blazer|parka|trench|gilet|cape|poncho|bomber|anorak|suit"]
+  - [outerwear, "jacket|jacker|coat|blazer|parka|trench|gilet|cape|poncho|bomber|anorak|suit"]
   - [bag, "bag|tote|clutch|backpack|wallet|purse|pouch|satchel|crossbody|cardholder|card holder|shopper|bucket"]
   - [shoes, "sneaker|boot|pump|sandal|loafer|mule|heel|espadrille|ballerina|slipper|slide|derby|oxford|flats|stiletto|trainers|wedge"]
   - [jewellery, "ring|necklace|earring|bracelet|pendant|brooch|choker|cuff|anklet|charm"]
   - [accessory, "sunglasses|glasses|belt|scarf|hat|cap|beanie|gloves|watch|hair|headband|keyring|key ring|tie|socks|umbrella"]
-  - [bottoms, "trousers|jeans|skirt|shorts|pants|leggings|culottes|joggers|track pants"]
-  - [top, "top|blouse|shirt|t-shirt|tee|sweater|jumper|cardigan|hoodie|sweatshirt|tank|camisole|bodysuit|polo|knit|vest|pullover"]
-  - [other, "bikini|swimsuit|bra|briefs|lingerie|robe|pyjama|swim"]
+  - [bottoms, "trousers|jeans|skirt|shorts|pants|leggings|tights|culottes|joggers|track pants"]
+  - [top, "top|tunic|blouse|shirt|t-shirt|tee|sweater|jumper|cardigan|hoodie|sweatshirt|tank|camisole|bodysuit|polo|knit|vest|pullover"]
+  - [other, "bikini|swimsuit|bra|briefs|lingerie|robe|pyjama|pajama|night ?gown|swim"]

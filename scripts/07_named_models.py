@@ -15,7 +15,7 @@ import json
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from silhouette_vision.catalog import load_catalog
+from silhouette_vision.catalog import load_legacy_catalog
 from silhouette_vision.config import path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.encoders import load_encoder
@@ -50,8 +50,8 @@ def labelled_items(catalog, models):
 
 
 def main():
-    catalog = load_catalog()
-    emb = load_embeddings(MODEL, catalog)
+    catalog = load_legacy_catalog()
+    emb = load_embeddings(f"{MODEL}__legacy", catalog)
     encoder = load_encoder(MODEL)
     models = load_models()
     embed_text = lambda t: encoder.embed_texts([t])[0]

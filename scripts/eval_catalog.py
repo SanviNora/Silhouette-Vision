@@ -14,7 +14,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from silhouette_vision.catalog import load_catalog
+from silhouette_vision.catalog import load_legacy_catalog
 from silhouette_vision.config import path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.search import top_k
@@ -57,8 +57,8 @@ def main():
     ap.add_argument("--queries", type=int, default=5000)
     args = ap.parse_args()
 
-    catalog = load_catalog()
-    emb = load_embeddings(args.model, catalog)
+    catalog = load_legacy_catalog()
+    emb = load_embeddings(f"{args.model}__legacy", catalog)
     rng = np.random.default_rng(0)
     report = {}
 

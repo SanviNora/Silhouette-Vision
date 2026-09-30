@@ -24,22 +24,22 @@ from silhouette_vision.search import Filters, SearchEngine
 
 st.set_page_config(page_title="Silhouette Vision", page_icon="👗", layout="wide")
 
-CURRENCY = {"SGD": "S$", "INR": "₹"}
 ABOUT = """
 Portfolio project, not affiliated with any brand or retailer.
 [Code and results](https://github.com/SanviNora/Silhouette-Vision)
 
-**Data**
-- Products: *Fashion Product Images* (Myntra, via Kaggle), MIT license.
-- Demand: *Visuelle 2.0*, Skenderi et al., CVPR Workshops 2022, CC BY-NC-SA 4.0
-  (non-commercial; images shown as thumbnails).
-- Luxury analysis: a 2019 Farfetch listings snapshot, used for analysis only; no Farfetch
-  products or images are shown in the public demo.
-- Benchmark: LookBench (Apache-2.0).
+**Products (2022–2026)**
+- *ZooClaw-Fashion* (2026), SerendipityOne, CC BY-NC 4.0.
+- *LookBench* studio gallery (2025), Apache-2.0.
+- *Second-Hand Fashion* (2022–24), Nauman et al., RISE, Wargön Innovation and Myrorna,
+  CC BY 4.0 (doi:10.5281/zenodo.13788681).
 
-**Models:** Marqo-FashionSigLIP, GR-Lite (DINOv3), YOLOS-Fashionpedia.
+**Demand:** *Visuelle 2.0*, Skenderi et al., CVPR Workshops 2022, CC BY-NC-SA 4.0.
+
+**Models:** Marqo-FashionSigLIP, YOLOS-Fashionpedia. Attribute heads trained on Fashion
+Product Images (Myntra, MIT).
 """
-SOURCE_LABEL = {"myntra": "Myntra", "farfetch": "Farfetch"}
+SOURCE_LABEL = {"zooclaw": "ZooClaw", "lookbench": "LookBench", "secondhand": "Second-hand"}
 
 
 # "Precise match" loads a second 1.2 GB model: off on hosted/small machines (SILHOUETTE_PRECISE).
@@ -167,19 +167,15 @@ def get_style_map():
 
 
 def price_text(row) -> str:
-    if row.price != row.price:  # NaN
-        return ""
-    text = f"{CURRENCY.get(row.currency, '')}{row.price:,.0f}"
-    if row.on_sale and row.discount_pct and row.discount_pct > 0:
-        text += f" · −{row.discount_pct:.0%}"
-    return text
+    """Only Second-Hand garments carry a price: an estimated resale band in Swedish kronor."""
+    band = getattr(row, "price_band", None)
+    return f"Resale est. {band} SEK" if isinstance(band, str) and band else ""
 
 
 def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     st.sidebar.header("Filters")
     cat = engine.catalog
-    sources = [] if PUBLIC else st.sidebar.multiselect("Catalog", ["myntra", "farfetch"],
-                                                        format_func=SOURCE_LABEL.get)
+    sources = st.sidebar.multiselect("Catalog", list(SOURCE_LABEL), format_func=SOURCE_LABEL.get)
     categories = st.sidebar.multiselect("Category", sorted(cat.category.unique()))
     genders = st.sidebar.multiselect("Gender", sorted(cat.gender.dropna().unique()))
     condition = st.sidebar.radio("Condition", ["Any", "New", "Pre-owned"], horizontal=True)
@@ -191,9 +187,8 @@ def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     )
     preowned = {"Any": None, "New": False, "Pre-owned": True}[condition]
     st.sidebar.caption(
-        f"{len(cat):,} products · "
-        + ("Myntra (MIT). " if PUBLIC else "Myntra (MIT) + Farfetch (2019 scrape, prices in SGD). ")
-        + "Model: Marqo-FashionSigLIP."
+        f"{len(cat):,} products from 2022–2026 · ZooClaw-Fashion, LookBench, Second-Hand Fashion. "
+        "Model: Marqo-FashionSigLIP."
     )
     with st.sidebar.expander("About & credits"):
         st.markdown(ABOUT)

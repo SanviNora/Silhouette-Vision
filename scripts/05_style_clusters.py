@@ -27,7 +27,7 @@ import umap
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-from silhouette_vision.catalog import load_catalog
+from silhouette_vision.catalog import load_legacy_catalog
 from silhouette_vision.config import ROOT, path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.encoders import load_encoder
@@ -62,8 +62,8 @@ def name_clusters(emb, labels, text_emb, words):
 
 
 def main():
-    catalog = load_catalog()
-    emb_all = load_embeddings("marqo_fashion_siglip", catalog)
+    catalog = load_legacy_catalog()
+    emb_all = load_embeddings("marqo_fashion_siglip__legacy", catalog)
     ff = catalog.source.values == "farfetch"
     encoder = load_encoder("marqo_fashion_siglip", device="cpu")
     rows, summary = [], {}
