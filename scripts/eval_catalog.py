@@ -5,7 +5,7 @@ query) and measure how often they share a labelled attribute: precision@10. Chan
 the probability that a random catalog item shares the attribute (sum of squared frequencies),
 so "lift" = precision / chance shows how much the embedding knows beyond base rates.
 
-Usage: python scripts/eval_catalog.py [--model marqo_fashion_siglip] [--queries 5000]
+Usage: python scripts/eval_catalog.py [--model marqo_fashion_siglip] [--queries 5000] [--legacy]
 """
 
 import argparse
@@ -14,7 +14,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from silhouette_vision.catalog import load_legacy_catalog
+from silhouette_vision.catalog import load_catalog, load_legacy_catalog
 from silhouette_vision.config import path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.search import top_k
@@ -55,15 +55,25 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="marqo_fashion_siglip")
     ap.add_argument("--queries", type=int, default=5000)
+    ap.add_argument("--legacy", action="store_true", help="Myntra + Farfetch (Phases 1-4)")
     args = ap.parse_args()
 
-    catalog = load_legacy_catalog()
-    emb = load_embeddings(f"{args.model}__legacy", catalog)
+    if args.legacy:
+        catalog = load_legacy_catalog()
+        emb = load_embeddings(f"{args.model}__legacy", catalog)
+        sources = [("myntra", ["article_type", "category", "colour", "gender", *MYNTRA_ATTRS]),
+                   ("farfetch", ["category", "brand", "is_preowned", "on_sale"])]
+    else:
+        catalog = load_catalog()
+        emb = load_embeddings(args.model, catalog)
+        sources = [("secondhand", ["item_type", "category", "pattern", "colour", "brand", "gender"]),
+                   ("zooclaw", ["item_type", "brand", "gender"]),
+                   ("abo", ["item_type", "brand", "gender"]),
+                   ("lookbench", ["item_type"])]
     rng = np.random.default_rng(0)
     report = {}
 
-    for source, fields in [("myntra", ["article_type", "category", "colour", "gender", *MYNTRA_ATTRS]),
-                           ("farfetch", ["category", "brand", "is_preowned", "on_sale"])]:
+    for source, fields in sources:
         idx = np.flatnonzero(catalog.source.values == source)
         sub, sub_emb = catalog.iloc[idx].reset_index(drop=True), emb[idx]
         if source == "myntra":
@@ -82,7 +92,7 @@ def main():
             print(f"  {field:14s} {100 * r['precision@10']:5.1f}% {100 * r['chance']:6.1f}% "
                   f"{r['lift']:5.1f}x {r['classes']:8d}")
 
-    out = path("reports") / f"catalog_eval_{args.model}.json"
+    out = path("reports") / f"catalog_eval_{args.model}{'_legacy' if args.legacy else ''}.json"
     out.write_text(json.dumps(report, indent=2))
     print(f"\nsaved {out.name}")
 

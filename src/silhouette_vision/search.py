@@ -120,12 +120,30 @@ class SearchEngine:
         v = (1 - text_weight) * image_vec + text_weight * text_vec
         return v / np.linalg.norm(v)
 
+    # Hybrid text search: cosine + KEYWORD_WEIGHT * TF-IDF match on brand, title and type.
+    # ZooClaw benchmark (zero-shot queries, whole catalog, weight chosen on the other half):
+    # R@10 62.0 -> 83.2 for long LLM-written queries, 61.2 -> 92.2 for short ones (optimistic:
+    # those are written from product titles). Embeddings alone miss brand and product names.
+    KEYWORD_WEIGHT = 0.25
+
+    def keyword_scores(self, text: str) -> np.ndarray:
+        if not hasattr(self, "_keywords"):
+            from sklearn.feature_extraction.text import TfidfVectorizer
+
+            docs = (self.catalog.brand.fillna("") + " " + self.catalog.title.fillna("") + " "
+                    + self.catalog.item_type.fillna("")).str.lower()
+            vec = TfidfVectorizer(sublinear_tf=True, ngram_range=(1, 2), min_df=2)
+            self._keywords = (vec, vec.fit_transform(docs).T.tocsr())
+        vec, docs_t = self._keywords
+        return np.asarray((vec.transform([text.lower()]) @ docs_t).todense()).ravel().astype(np.float32)
+
     # --- search --------------------------------------------------------------------------
     def search(self, query: np.ndarray, k: int = 12, filters: Filters | None = None,
                exclude: list[str] | None = None, query_colour: np.ndarray | None = None,
                colour_weight: float = colour.DEFAULT_WEIGHT, shortlist: int = 50,
-               precise_query: np.ndarray | None = None) -> pd.DataFrame:
-        """Top-k by cosine similarity. With `query_colour`, the top `shortlist` items are
+               precise_query: np.ndarray | None = None, keywords: str | None = None) -> pd.DataFrame:
+        """Top-k by cosine similarity (plus keyword match when `keywords` is given, for text
+        search; the "similarity" column stays the cosine). With `query_colour`, the top `shortlist` items are
         re-scored as cosine + colour_weight * colour intersection (see colour.py). With
         `precise_query` (a GR-Lite vector), search is limited to Myntra and scores are the
         Marqo/GR-Lite blend."""
@@ -142,9 +160,10 @@ class SearchEngine:
             w = self.PRECISE_WEIGHT
             scores = scores.copy()
             scores[rows] = (1 - w) * scores[rows] + w * (emb @ precise_query.astype(np.float32))
+        rank = scores + self.KEYWORD_WEIGHT * self.keyword_scores(keywords) if keywords else scores
         use_colour = query_colour is not None and self.colour_hists is not None and colour_weight > 0
-        rows = top_k(scores, max(k, shortlist) if use_colour else k, mask)
-        final = scores[rows]
+        rows = top_k(rank, max(k, shortlist) if use_colour else k, mask)
+        final = rank[rows]
         if use_colour:
             final = final + colour_weight * colour.intersection(query_colour, self.colour_hists[rows])
             order = np.argsort(-final)[:k]

@@ -75,6 +75,47 @@ class MarqoFashionSigLIP(OpenCLIPEncoder):
         super().__init__("marqo_fashion_siglip", "hf-hub:Marqo/marqo-fashionSigLIP", device=device)
 
 
+class ZooClawSigLIP2(_Base):
+    """ZooClaw-FashionSigLIP2 (SigLIP2-base 384 px fine-tuned for fashion, Apache-2.0): 768-d,
+    image + text. Loaded with transformers' SiglipModel as its model card does."""
+
+    has_text = True
+    hub_id = "srpone/zooclaw-fashionsiglip2"
+
+    def __init__(self, device: str | None = None):
+        from torchvision import transforms as T
+        from transformers import AutoModel, AutoTokenizer
+
+        self.name, self.dim = "zooclaw_fashionsiglip2", 768
+        self.device = device or default_device()
+        self.model = AutoModel.from_pretrained(self.hub_id).to(self.device).eval()
+        self.tokenizer = AutoTokenizer.from_pretrained(self.hub_id)
+        self.transform = T.Compose([
+            T.Resize((384, 384), interpolation=T.InterpolationMode.BILINEAR),  # as its processor
+            T.ToTensor(),
+            T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ])
+
+    def preprocess(self, image: Image.Image) -> torch.Tensor:
+        return self.transform(image.convert("RGB"))
+
+    @staticmethod
+    def _tensor(out):
+        return out if isinstance(out, torch.Tensor) else out.pooler_output
+
+    @torch.inference_mode()
+    def embed_pixels(self, pixels: torch.Tensor) -> np.ndarray:
+        emb = self._tensor(self.model.get_image_features(pixel_values=pixels.to(self.device)))
+        return F.normalize(emb, dim=-1).float().cpu().numpy()
+
+    @torch.inference_mode()
+    def embed_texts(self, texts: list[str]) -> np.ndarray:
+        tokens = self.tokenizer(texts, padding="max_length", truncation=True, max_length=64,
+                                return_tensors="pt").to(self.device)
+        emb = self._tensor(self.model.get_text_features(**tokens))
+        return F.normalize(emb, dim=-1).float().cpu().numpy()
+
+
 class GRLite(_Base):
     """GR-Lite (DINOv3 ViT-L/16 fine-tuned for fashion retrieval): image-only, 1024-d.
 
@@ -148,6 +189,7 @@ ENCODERS = {
     "marqo_fashion_siglip": MarqoFashionSigLIP,
     # Generic baseline (no fashion training), as in the LookBench paper's CLIP-B/16 row.
     "clip_vit_b16": lambda device=None: OpenCLIPEncoder("clip_vit_b16", "ViT-B-16", "openai", device),
+    "zooclaw_fashionsiglip2": ZooClawSigLIP2,
     "gr_lite": GRLite,
     "gr_lite_norope": lambda device=None: GRLite(device, rope=False),
 }

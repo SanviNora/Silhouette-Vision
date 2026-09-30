@@ -65,5 +65,6 @@ def test_brand_names_are_display_ready():
     from silhouette_vision.catalog import _brand
 
     assert _brand("h&m") == "H&M"
+    assert _brand("LEVI'S") == "Levi's"
     assert _brand("mm6 maison margiela") == "MM6 Maison Margiela"
     assert _brand("Not in the list") is None and _brand("") is None

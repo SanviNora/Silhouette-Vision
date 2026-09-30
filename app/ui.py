@@ -495,7 +495,7 @@ def main():
         text = st.text_input("Describe what you're looking for",
                              placeholder="e.g. black quilted leather shoulder bag with gold chain")
         if text:
-            show_results(engine.search(engine.text_vector(text), k, filters), "txt")
+            show_results(engine.search(engine.text_vector(text), k, filters, keywords=text), "txt")
 
     with map_tab:
         style_map_tab()
