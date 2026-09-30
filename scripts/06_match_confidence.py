@@ -172,7 +172,7 @@ def main():
     out["catalog_lookbench"] = catalog_check(models["marqo"])
 
     # Robustness: degraded catalog photos should find themselves, confidently.
-    engine = SearchEngine(precise=False)
+    engine = SearchEngine()
     rng = np.random.default_rng(0)
     catalog = load_catalog()
     picks = rng.choice(len(catalog), args.robustness, replace=False)

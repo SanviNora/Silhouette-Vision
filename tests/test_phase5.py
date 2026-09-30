@@ -25,3 +25,30 @@ def test_store_percentile_is_relative_to_the_season():
     products = pd.DataFrame({"season": ["AW18"] * 3 + ["AW19"] * 3, "n_stores": [5, 10, 20, 10, 20, 40]})
     pct = products.groupby("season").n_stores.rank(pct=True).values
     assert np.allclose(pct[:3], pct[3:])
+
+
+def test_bundle_bootstrap_never_wipes_a_non_bundle_folder(tmp_path, monkeypatch):
+    import pytest
+
+    from silhouette_vision import bootstrap
+
+    calls = []
+
+    def fake_download(repo, repo_type, local_dir):  # like snapshot_download: creates the folder
+        calls.append(local_dir)
+        local_dir.mkdir(parents=True, exist_ok=True)
+        (local_dir / "VERSION").write_text(bootstrap.BUNDLE_VERSION)
+
+    monkeypatch.setattr("huggingface_hub.snapshot_download", fake_download)
+    repo = tmp_path / "my_project"
+    repo.mkdir()
+    (repo / "precious.txt").write_text("keep me")
+    with pytest.raises(RuntimeError):
+        bootstrap.ensure_bundle(repo, "user/data")
+    assert (repo / "precious.txt").exists() and not calls
+
+    old = tmp_path / "silhouette_bundle"  # an outdated bundle (no VERSION): replaced
+    old.mkdir()
+    (old / "stale.parquet").write_text("old")
+    bootstrap.ensure_bundle(old, "user/data")
+    assert calls == [old] and not (old / "stale.parquet").exists()

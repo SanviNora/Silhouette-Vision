@@ -1,9 +1,11 @@
 """Visual and text search over the catalog.
 
 Exact search on L2-normalized embeddings: one matrix-vector product gives the cosine similarity to
-every item. At ~230k items this takes tens of milliseconds in NumPy, so no ANN index (FAISS,
-HNSW) is needed; FAISS was also dropped because its bundled OpenMP runtime clashes with PyTorch's.
+every item. At 51k items this takes a few milliseconds in NumPy, so no ANN index (FAISS, HNSW) is
+needed; FAISS was also dropped because its bundled OpenMP runtime clashes with PyTorch's.
 Filters are applied before ranking, so a filtered query still returns k results.
+The Marqo + GR-Lite blend ("Precise match", +4.7 R@1 on LookBench) was removed from the app: it
+needs a second 1.2 GB model that does not fit the free host (docs/phase2_results.md).
 """
 
 from dataclasses import dataclass, field
@@ -51,37 +53,11 @@ def top_k(scores: np.ndarray, k: int, mask: np.ndarray | None = None) -> np.ndar
 
 
 class SearchEngine:
-    def __init__(self, model: str = "marqo_fashion_siglip", device: str | None = None,
-                 precise: bool = True):
+    def __init__(self, model: str = "marqo_fashion_siglip", device: str | None = None):
         self.catalog = load_catalog()
         self.embeddings = load_embeddings(model, self.catalog)
         self.encoder = load_encoder(model, device=device)
         self.colour_hists = self._load_colour_hists()
-        self.precise = self._load_precise() if precise else None
-        self._precise_encoder = None
-
-    # "Precise match": Marqo + GR-Lite blended 50/50 (best on held-out LookBench queries:
-    # exact R@1 55.4 vs 50.7 for Marqo alone, +7.6 on street photos). GR-Lite embeddings exist
-    # only for Myntra (the public gallery), so precise search is restricted to Myntra.
-    PRECISE_MODEL, PRECISE_SOURCE, PRECISE_WEIGHT = "gr_lite", "myntra", 0.5
-
-    def _load_precise(self) -> tuple[np.ndarray, np.ndarray] | None:
-        name = f"{self.PRECISE_MODEL}__{self.PRECISE_SOURCE}"
-        rows = np.flatnonzero(self.catalog.source.values == self.PRECISE_SOURCE)
-        try:
-            emb = load_embeddings(name, self.catalog.iloc[rows].reset_index(drop=True))
-        except (FileNotFoundError, ValueError):
-            return None
-        return rows, emb
-
-    @property
-    def has_precise(self) -> bool:
-        return self.precise is not None
-
-    def precise_vector(self, image: Image.Image) -> np.ndarray:
-        if self._precise_encoder is None:
-            self._precise_encoder = load_encoder(self.PRECISE_MODEL)
-        return self._precise_encoder.embed_images([image])[0]
 
     def _load_colour_hists(self) -> np.ndarray | None:
         """Colour histograms from scripts/03_colour_features.py; colour re-ranking is off without them."""
@@ -141,25 +117,16 @@ class SearchEngine:
     def search(self, query: np.ndarray, k: int = 12, filters: Filters | None = None,
                exclude: list[str] | None = None, query_colour: np.ndarray | None = None,
                colour_weight: float = colour.DEFAULT_WEIGHT, shortlist: int = 50,
-               precise_query: np.ndarray | None = None, keywords: str | None = None) -> pd.DataFrame:
+               keywords: str | None = None) -> pd.DataFrame:
         """Top-k by cosine similarity (plus keyword match when `keywords` is given, for text
-        search; the "similarity" column stays the cosine). With `query_colour`, the top `shortlist` items are
-        re-scored as cosine + colour_weight * colour intersection (see colour.py). With
-        `precise_query` (a GR-Lite vector), search is limited to Myntra and scores are the
-        Marqo/GR-Lite blend."""
+        search; the "similarity" column stays the cosine). With `query_colour`, the top
+        `shortlist` items are re-scored as cosine + colour_weight * colour intersection
+        (see colour.py)."""
         mask = filters.mask(self.catalog) if filters else None
         if exclude:
             mask = np.ones(len(self.catalog), bool) if mask is None else mask.copy()
             mask[[self._row(i) for i in exclude]] = False
         scores = self.embeddings @ query.astype(np.float32)
-        if precise_query is not None and self.precise is not None:
-            rows, emb = self.precise
-            only = np.zeros(len(self.catalog), bool)
-            only[rows] = True
-            mask = only if mask is None else mask & only
-            w = self.PRECISE_WEIGHT
-            scores = scores.copy()
-            scores[rows] = (1 - w) * scores[rows] + w * (emb @ precise_query.astype(np.float32))
         rank = scores + self.KEYWORD_WEIGHT * self.keyword_scores(keywords) if keywords else scores
         use_colour = query_colour is not None and self.colour_hists is not None and colour_weight > 0
         rows = top_k(rank, max(k, shortlist) if use_colour else k, mask)
@@ -173,11 +140,10 @@ class SearchEngine:
         result.insert(1, "similarity", scores[rows])
         return result.reset_index(drop=True)
 
-    def best_match(self, query: np.ndarray, filters: Filters | None = None,
-                   precise_query: np.ndarray | None = None) -> tuple[pd.Series, np.ndarray]:
+    def best_match(self, query: np.ndarray, filters: Filters | None = None) -> tuple[pd.Series, np.ndarray]:
         """Top result by pure similarity (no colour re-ranking) and its top-5 scores, for the
         exact-match confidence, which was calibrated on pure similarity."""
-        top = self.search(query, k=5, filters=filters, precise_query=precise_query)
+        top = self.search(query, k=5, filters=filters)
         return top.iloc[0], top.similarity.values
 
     def _row(self, item_id: str) -> int:
