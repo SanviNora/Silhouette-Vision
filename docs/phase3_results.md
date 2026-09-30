@@ -1,5 +1,38 @@
 # Phase 3 Results — Product Understanding
 
+## Update 2026-09-29: the recent catalog (51,047 products)
+**Attributes.** Heads trained on Myntra alone lost accuracy on recent photos (Second-Hand type
+61%, colour 65%; Amazon boots called "Casual Shoes", Myntra has no boots class). Retrained on
+Myntra + the recent sources' own labels (mapped into Myntra's vocabulary; Second-Hand's official
+test split held out; scripts/exp_attributes_joint.py):
+
+| Attribute | Recent photos: Myntra only → joint | Myntra test: Myntra only → joint |
+|---|---|---|
+| Colour (single-colour garments) | 41.6% → **85.2%** | 65.6% → 65.1% |
+| Pattern | 71.7% → **78.4%** | 83.5% → 82.0% |
+| Garment type (Second-Hand) | 57.5% → **79.1%** | 90.0% → 89.4% |
+| Footwear type (Amazon; adds Boots) | 14.4% → **99.4%** | |
+
+Final heads (method per attribute chosen on Myntra validation) score 79.6% type, 87.5% colour and
+79.0% pattern on held-out recent photos. Type predictions are constrained to each product's known
+category. Shown in the app: type, colour, pattern, sleeves, neck; fit, material, fabric, usage,
+season and gender stay hidden (domain shift or no way to check them here).
+
+**Style map.** Clustering raw embeddings grouped products by *photo setup* (97% source purity: every
+cluster ~0% or ~98% second-hand). Removing each source's mean embedding within a category brought
+purity to the majority baseline (tops 77%). 48 styles across 6 categories (silhouette 0.41–0.65).
+
+**Donated vs new** (tops: 18.5k donated 2022–24 vs 5.7k new 2025–26; category average 77% donated):
+
+| Over-represented among donations | Over-represented among new products |
+|---|---|
+| all black · gothic (91%), striped · colour block (90%), minimalist · cropped (87%), floral/animal print (86%) | athleisure · logo print (54%: Stone Island, Moncler, Craft), preppy · sporty (66%: Lyle & Scott, Polo, Lacoste) |
+
+Bottoms: studded/embellished denim 88% donated vs tailored/pleated 54%. Caveat: the comparison
+mixes time with market segment (new products skew premium, donations are Nordic mass-market),
+and centring removes average source differences; it is an association, not a sales trend.
+
+
 **Date:** 2026-09-28 · Features: Marqo-FashionSigLIP embeddings (frozen) · CPU only
 
 ## TL;DR

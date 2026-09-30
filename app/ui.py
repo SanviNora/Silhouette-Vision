@@ -213,7 +213,7 @@ def show_results(results, key_prefix: str, query_attrs=None):
                 b for b in [SOURCE_LABEL[row.source], "Pre-owned" if row.is_preowned else None] if b
             )
             st.markdown(f"**{row.brand or ''}**  \n{row.title}")
-            tags = item_tags(preds.loc[row.item_id], row.source) if preds is not None else []
+            tags = item_tags(preds.loc[row.item_id]) if preds is not None else []
             shared = shared_text(query_attrs, row)
             st.caption(f"{price_text(row)}  \n{badges} · {row.category} · similarity {row.similarity:.2f}"
                        + (f"  \n{shared}" if shared else (f"  \n{' · '.join(tags)}" if tags else "")))
@@ -243,7 +243,7 @@ def shared_text(query_attrs, row) -> str:
         return ""
     from silhouette_vision.explain import compare_attributes
 
-    comp = compare_attributes(query_attrs, preds.loc[row.item_id], row.source)
+    comp = compare_attributes(query_attrs, preds.loc[row.item_id])
     shares = [c["item"] for c in comp if c["relation"] != "different"]
     differs = [f"{c['item']} (yours: {c['photo']})" for c in comp if c["relation"] == "different"]
     return "  \n".join(t for t in [("Shares: " + " · ".join(shares)) if shares else "",
@@ -257,7 +257,7 @@ def show_why(engine: SearchEngine, image, query_attrs, row) -> None:
     with st.expander("Why this matches"):
         _, preds = get_attributes()
         if query_attrs and preds is not None:
-            comp = compare_attributes(query_attrs, preds.loc[row.item_id], row.source)
+            comp = compare_attributes(query_attrs, preds.loc[row.item_id])
             if comp:
                 st.markdown("  \n".join(
                     f"{RELATION_MARK[c['relation']]} **{c['label']}**: {c['photo']}"
@@ -401,44 +401,42 @@ def style_map_tab():
         st.info("Run scripts/05_style_clusters.py to build the style map.")
         return
     engine = get_engine()
-    st.caption("Visual style clusters in the Farfetch luxury catalog, found from images alone "
-               "(k-means on UMAP of Marqo embeddings) and named by the model's most distinctive "
-               "style words. Prices in SGD.")
-    category = st.selectbox("Category", list(report), index=list(report).index("bag"))
+    st.caption("Visual styles in the catalog, found from images alone (k-means on UMAP of Marqo "
+               "embeddings, after removing each source's photo-setup average) and named by the "
+               "model's most distinctive style words.")
+    category = st.selectbox("Category", list(report), index=0)
     data = clusters[clusters.category == category]
     info = report[category]
+    compare = info.get("donated_share") is not None
     summary = pd.DataFrame([{"Style": v["name"], "Items": v["size"],
-                             "Median price": v["median_price_sgd"],
-                             "On sale": v["on_sale_share"], "Pre-owned": v["preowned_share"],
+                             **({"Donated share": v["donated_share"]} if compare else {}),
                              "Signature brands": ", ".join(v["signature_brands"])}
-                            for v in info["detail"].values()]).sort_values("Median price", ascending=False)
-    sample = data.sample(min(6000, len(data)), random_state=0)
-    if PUBLIC:  # the Farfetch listings may not be redistributed: map positions and styles only
-        hover = {"map_x": False, "map_y": False}
-    else:
-        sample = sample.merge(engine.catalog[["item_id", "brand", "title", "price"]], on="item_id")
-        hover = {"brand": True, "title": True, "price": ":.0f", "map_x": False, "map_y": False}
+                            for v in info["detail"].values()])
+    summary = summary.sort_values("Donated share" if compare else "Items", ascending=False)
+    sample = data.sample(min(6000, len(data)), random_state=0).merge(
+        engine.catalog[["item_id", "brand", "title"]], on="item_id")
     fig = px.scatter(sample, x="map_x", y="map_y", color="cluster_name", opacity=0.6,
-                     hover_data=hover, labels={"cluster_name": "Style"}, height=560)
+                     hover_data={"brand": True, "title": True, "map_x": False, "map_y": False},
+                     labels={"cluster_name": "Style"}, height=560)
     fig.update_traces(marker={"size": 4})
     fig.update_layout(xaxis_visible=False, yaxis_visible=False, legend_title_text="Style")
     st.plotly_chart(fig, width="stretch")
     st.dataframe(summary, hide_index=True, width="stretch", column_config={
-        "Median price": st.column_config.NumberColumn(format="S$%.0f"),
-        "On sale": st.column_config.ProgressColumn(format="percent", min_value=0, max_value=1),
-        "Pre-owned": st.column_config.ProgressColumn(format="percent", min_value=0, max_value=1),
+        "Donated share": st.column_config.ProgressColumn(format="percent", min_value=0, max_value=1),
     })
-    if PUBLIC:
-        st.caption("Aggregates over a 2019 Farfetch listings snapshot, used for analysis only; "
-                   "individual products are not shown in the public demo.")
-        return
+    if compare:
+        st.caption(f"Donated share: second-hand garments given away in 2022–24, vs products sold new "
+                   f"in 2025–26 (category average {info['donated_share']:.0%}). Styles above the average "
+                   "are over-represented among donations. It mixes time with market: the new products "
+                   "skew premium, the donations Nordic mass-market.")
     style = st.selectbox("Show products from a style", summary.Style.tolist())
     members = data[data.cluster_name == style].sample(
         min(8, (data.cluster_name == style).sum()), random_state=1)
     cols = st.columns(8)
     for col, item_id in zip(cols, members.item_id, strict=False):
         row = engine.catalog.set_index("item_id").loc[item_id]
-        col.image(str(DATA_ROOT / row.image_path), caption=f"{row.brand}", width="stretch")
+        col.image(str(DATA_ROOT / row.image_path), caption=row.brand if isinstance(row.brand, str) else "",
+                  width="stretch")
 
 
 def main():

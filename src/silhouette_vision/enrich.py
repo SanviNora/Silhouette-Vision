@@ -4,9 +4,10 @@ Models come from scripts/04_attributes.py. An attribute is only shown where it a
 length for tops/dresses/outerwear, material for bags/shoes, ...), judged from the predicted
 article type's category.
 
-Trust: the predictors are trained on Myntra (mass-market). On luxury Farfetch items, material,
-fabric, usage, season and fit showed clear domain shift (e.g. 59% of luxury bags/shoes called
-"synthetic", 95% of items "casual"), so only the attributes below are displayed for Farfetch.
+Trust: only attributes validated on the recent catalog (type, colour, pattern: 79-99% on held-out
+recent photos) or reliable on Myntra and easy to see (sleeves, neck) are shown. Fit, material,
+fabric, usage and season showed domain shift on non-Myntra photos (Farfetch: 59% of luxury
+bags/shoes called "synthetic", 95% of items "casual") and cannot be checked here, so they stay hidden.
 """
 
 import numpy as np
@@ -14,10 +15,8 @@ import pandas as pd
 
 from silhouette_vision.config import DATA_ROOT, path
 
-# Shown in the app. Hidden: gender (learned bias, e.g. women's wide-leg jeans -> "Men" at 100%),
-# usage and season (weakest test macro-F1, yet predicted at ~100% confidence), fabric (44 F1).
-DISPLAY_ORDER = ["article_type", "colour", "pattern", "sleeve_length", "neck", "fit", "material"]
-TRUSTED_ON_FARFETCH = {"article_type", "colour", "pattern", "sleeve_length", "neck"}
+# Shown in the app. Also hidden: gender (learned bias, e.g. women's wide-leg jeans -> "Men" at 100%).
+DISPLAY_ORDER = ["article_type", "colour", "pattern", "sleeve_length", "neck"]
 LABELS = {"article_type": "Type", "colour": "Colour", "pattern": "Pattern",
           "sleeve_length": "Sleeves", "neck": "Neck", "fit": "Fit", "material": "Material",
           "fabric": "Fabric", "gender": "For", "usage": "Occasion", "season": "Season"}
@@ -63,12 +62,10 @@ def load_catalog_predictions() -> pd.DataFrame | None:
     return pd.read_parquet(file).set_index("item_id") if file.exists() else None
 
 
-def item_tags(pred_row: pd.Series, source: str, n: int = 3) -> list[str]:
-    """Short attribute tags for a result card (trusted attributes only on Farfetch)."""
+def item_tags(pred_row: pd.Series, n: int = 3) -> list[str]:
+    """Short attribute tags for a result card."""
     tags = []
     for name in ["colour", "pattern", "sleeve_length", "neck"]:
-        if source == "farfetch" and name not in TRUSTED_ON_FARFETCH:
-            continue
         value = pred_row.get(f"pred_{name}")
         if isinstance(value, str) and pred_row.get(f"conf_{name}", 0) >= 0.5 and value != "Solid":
             tags.append(value)
