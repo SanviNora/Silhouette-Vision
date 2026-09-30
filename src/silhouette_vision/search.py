@@ -55,7 +55,9 @@ def top_k(scores: np.ndarray, k: int, mask: np.ndarray | None = None) -> np.ndar
 class SearchEngine:
     def __init__(self, model: str = "marqo_fashion_siglip", device: str | None = None):
         self.catalog = load_catalog()
-        self.embeddings = load_embeddings(model, self.catalog)
+        # Held at 16 bit (as stored) and scored in 32-bit chunks: ~80 MB less on the 2.7 GB free
+        # host, identical rankings (16-bit storage measured lossless on LookBench, Phase 2).
+        self.embeddings = load_embeddings(model, self.catalog).astype(np.float16)
         self.encoder = load_encoder(model, device=device)
         self.colour_hists = self._load_colour_hists()
 
@@ -67,7 +69,7 @@ class SearchEngine:
         ids = pd.read_parquet(folder / "item_ids.parquet").item_id.values
         if len(ids) != len(self.catalog) or not (ids == self.catalog.item_id.values).all():
             return None
-        return np.load(folder / "hists.npy").astype(np.float32)
+        return np.load(folder / "hists.npy").astype(np.float16)
 
     @property
     def has_colour(self) -> bool:
@@ -81,14 +83,20 @@ class SearchEngine:
         return self.encoder.embed_texts([text])[0]
 
     def item_vector(self, item_id: str) -> np.ndarray:
-        return self.embeddings[self._row(item_id)]
+        return self.embeddings[self._row(item_id)].astype(np.float32)
+
+    def similarities(self, query: np.ndarray, rows: np.ndarray | None = None, chunk: int = 8192) -> np.ndarray:
+        """Cosine of `query` to every product (or to `rows`), computed in 32-bit chunks."""
+        emb = self.embeddings if rows is None else self.embeddings[rows]
+        q = query.astype(np.float32)
+        return np.concatenate([emb[i:i + chunk].astype(np.float32) @ q for i in range(0, len(emb), chunk)])
 
     @staticmethod
     def image_colour(image: Image.Image) -> np.ndarray:
         return colour.colour_hist(image)
 
     def item_colour(self, item_id: str) -> np.ndarray | None:
-        return None if self.colour_hists is None else self.colour_hists[self._row(item_id)]
+        return None if self.colour_hists is None else self.colour_hists[self._row(item_id)].astype(np.float32)
 
     @staticmethod
     def combine(image_vec: np.ndarray, text_vec: np.ndarray, text_weight: float = 0.3) -> np.ndarray:
@@ -126,13 +134,13 @@ class SearchEngine:
         if exclude:
             mask = np.ones(len(self.catalog), bool) if mask is None else mask.copy()
             mask[[self._row(i) for i in exclude]] = False
-        scores = self.embeddings @ query.astype(np.float32)
+        scores = self.similarities(query)
         rank = scores + self.KEYWORD_WEIGHT * self.keyword_scores(keywords) if keywords else scores
         use_colour = query_colour is not None and self.colour_hists is not None and colour_weight > 0
         rows = top_k(rank, max(k, shortlist) if use_colour else k, mask)
         final = rank[rows]
         if use_colour:
-            final = final + colour_weight * colour.intersection(query_colour, self.colour_hists[rows])
+            final = final + colour_weight * colour.intersection(query_colour, self.colour_hists[rows].astype(np.float32))
             order = np.argsort(-final)[:k]
             rows, final = rows[order], final[order]
         result = self.catalog.iloc[rows].copy()

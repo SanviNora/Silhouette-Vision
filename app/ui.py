@@ -99,6 +99,19 @@ section[data-testid="stSidebar"] { background: #F5F0E8; border-right: 1px solid 
 """
 
 
+def release_memory() -> None:
+    """Return freed memory to the OS after heavy steps. Linux's allocator keeps it otherwise, and
+    usage ratchets towards the free host's ~2.7 GB limit. No-op elsewhere."""
+    import ctypes
+    import gc
+
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):
+        pass
+
+
 # --- cached resources -------------------------------------------------------------------------
 @st.cache_resource(show_spinner="First start: downloading the catalog (~1–2 minutes)…")
 def get_data() -> None:
@@ -107,6 +120,7 @@ def get_data() -> None:
         from silhouette_vision.bootstrap import ensure_bundle
 
         ensure_bundle(DATA_ROOT, DATA_REPO)
+        release_memory()
 
 
 @st.cache_resource(show_spinner="Loading the search model…")
@@ -171,7 +185,7 @@ def get_style_map():
     return pd.read_parquet(file), json.loads(report.read_text())
 
 
-@st.cache_data(show_spinner=False, max_entries=2000)
+@st.cache_data(show_spinner=False, max_entries=300)
 def data_uri(file: str) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(Path(file).read_bytes()).decode()
 
@@ -324,7 +338,7 @@ def show_named_model(engine: SearchEngine, image_vec) -> None:
         f'<div class="sv-muted" style="margin-top:.4rem">{esc(stock)} · '
         f'<a href="{web}" target="_blank">Find it online</a></div></div>', unsafe_allow_html=True)
     if len(rows):
-        best = rows[np.argsort(-(engine.embeddings[rows] @ image_vec))[:4]]
+        best = rows[np.argsort(-engine.similarities(image_vec, rows))[:4]]
         cols = st.columns(4)
         for col, (_, row) in zip(cols, engine.catalog.iloc[best].iterrows(), strict=False):
             col.image(str(DATA_ROOT / row.image_path), caption=row.title, width="stretch")
@@ -378,10 +392,11 @@ def show_why(engine: SearchEngine, image, query_attrs, row) -> None:
         with st.spinner("Hiding one region at a time and re-measuring the similarity…"):
             query_vec, item_vec = engine.image_vector(image), engine.item_vector(row.item_id)
             a, b = st.columns(2)
-            a.image(overlay(image, occlusion_map(engine.encoder, image, item_vec, grid=8)),
+            a.image(overlay(image, occlusion_map(engine.encoder, image, item_vec, grid=8, batch=8)),
                     caption="Your photo: regions the match depends on", width="stretch")
-            b.image(overlay(item_image, occlusion_map(engine.encoder, item_image, query_vec, grid=8)),
+            b.image(overlay(item_image, occlusion_map(engine.encoder, item_image, query_vec, grid=8, batch=8)),
                     caption="The match: regions that resemble your photo", width="stretch")
+        release_memory()
         st.caption("Brighter = hiding this region lowers the similarity most. ≈ marks a close shade or type.")
 
 
