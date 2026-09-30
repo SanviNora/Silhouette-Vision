@@ -180,7 +180,7 @@ def _brand(name) -> str | None:
     if not isinstance(name, str) or name.strip().lower() in {"", "not in the list", "unknown", "missing",
                                                               "not applicable"}:
         return None
-    cap = lambda w: w[:1].upper() + w[1:].lower()  # noqa: E731  (not str.title: "Levi'S")
+    cap = lambda w: w[:1].upper() + w[1:].lower()
     words = [UPPER.get(cap(w), cap(w)) for w in name.strip().split()]
     return " ".join(words).replace("H&m", "H&M").replace("J.crew", "J.Crew")
 
