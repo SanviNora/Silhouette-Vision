@@ -86,7 +86,8 @@ Tests: `pytest -q` (35 tests; `-m "not slow"` skips the two that download the re
 src/silhouette_vision/  library: catalog, encoders, embed, search, colour, attributes, recent_labels,
                         detect, match, named_models, explain, demand, bootstrap
 scripts/                numbered pipeline stages (00-11) and experiments (eval_*, exp_*)
-app/ui.py               Streamlit app (theme in .streamlit/config.toml)
+app/ui.py               Streamlit app: glass search card, live scan, product pages (theme in .streamlit/config.toml)
+app/assets/              hero background
 configs/                data sources and licenses, taxonomy, pipeline, iconic luxury models
 deploy/                 Streamlit Cloud guide, data bundle card
 docs/                   pipeline, data guide, results per phase, interview notes

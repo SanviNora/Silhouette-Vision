@@ -12,6 +12,7 @@ Data-specific Q&A lives in [data_guide.md](data_guide.md#interview-cheat-sheet).
 
 | Date | Decision | Why | Alternatives rejected |
 |---|---|---|---|
+| 2026-10-03 | **Editorial UI**: runway-photo hero with a frosted-glass card (Search by photo / by words), a scan view whose five steps and percentages are the real pipeline stages, Auralee-style product cards and an Allure-style product page | The progress is honest (each pill turns 100 when that stage actually finishes, about 2–8 s total), so the animation explains the system instead of decorating it; one dark/bone/lime palette across every page; CSS only, so hosted memory is unchanged | Tabs layout (functional but generic); a separate front-end (two deployments to maintain) |
 | 2026-09-27 | Four core datasets (Myntra, Farfetch, LookBench, Visuelle 2.0) + H&M backup | No single public dataset has luxury products, clean labels **and** sales | Fashionpedia (street photos, not product shots), Branded Bottoms (5k trousers only), Vestiaire (removed from Kaggle) |
 | 2026-09-27 | Full Myntra images, not "small" | The small version is 60×80 px; the models expect 224–384 px | — |
 | 2026-09-27 | Use Myntra's style JSONs, not just `styles.csv` | They add price, brand and structured attributes (Pattern, Fabric, Neck, Sleeve, Fit, Material), which serve as labels for explanations | Buying or adding another attribute dataset |
