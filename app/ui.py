@@ -98,14 +98,14 @@ footer {{ visibility:hidden; }}
 .st-key-heroc::before {{ content:""; position:absolute; inset:0; background-image:url("{GRAIN}"); opacity:.16; mix-blend-mode:overlay; pointer-events:none; }}
 .st-key-heroc > div {{ position:relative; z-index:1; }}
 .st-key-heroc .st-key-glass {{ margin-top: 5vh; }}
-/* masthead over the photo (Margelle-style): huge condensed name, brush script across it; the glass card overlaps it */
+/* masthead over the photo (Margelle-style): huge condensed name above the card, script below */
 .st-key-hero .sv-logo {{ visibility:hidden; }}
-.sv-mast {{ position:relative; text-align:center; container-type:inline-size; margin: 6vh 0 0; pointer-events:none; }}
+.sv-mast {{ position:relative; text-align:center; container-type:inline-size; margin: 4vh 0 0; pointer-events:none; }}
 .sv-mast .big {{ font-family:'Anton',sans-serif; font-size:19.6cqi; line-height:.84; color: rgba(241,238,231,.92); text-transform:uppercase;
   letter-spacing:.004em; text-shadow: 0 10px 50px rgba(0,0,0,.35); }}
-.sv-mast .scr {{ position:absolute; right:3%; bottom:-6%; font-family:'Mr Dafoe',cursive; font-size:8.4cqi; color:#fff; transform: rotate(-7deg);
-  text-shadow: 0 4px 24px rgba(0,0,0,.45); z-index:3; }}
-.st-key-hero .st-key-glass {{ margin-top: -3.6vw; }}
+.st-key-hero .st-key-glass {{ margin-top: 2.5vh; }}
+.sv-mast-b {{ text-align:center; font-family:'Pinyon Script',cursive; font-size: clamp(4.6rem, 9vw, 9rem); line-height:1; color:#fff;
+  margin-top:.4rem; text-shadow: 0 6px 30px rgba(0,0,0,.5); pointer-events:none; }}
 /* side text next to the card once results are shown (Margelle look-book) */
 .sv-side {{ font-family:'Anton',sans-serif; font-size: clamp(2.4rem, 4.6vw, 5rem); line-height:.9; color: var(--bone); text-transform:uppercase; margin-top:5vh; }}
 .sv-side.r {{ text-align:right; }}
@@ -136,7 +136,9 @@ footer {{ visibility:hidden; }}
 .st-key-glass [data-testid="stVerticalBlock"] {{ gap: .55rem; }}
 .st-key-gbody {{ background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius: 20px; padding: 16px 18px; }}
 .sv-gtitle {{ text-align:center; color: rgba(255,255,255,.9); font-size:.92rem; font-weight:500; }}
-.sv-gtitle span {{ font-family:'Pinyon Script',cursive; font-size:1.3rem; color:var(--rose); margin-right:.15rem; }}
+.sv-gtitle b {{ font-family:'Anton',sans-serif; font-weight:400; font-size:1.02rem; letter-spacing:.06em; color:#fff; }}
+.sv-gtitle span {{ font-family:'Pinyon Script',cursive; font-size:1.35rem; color:var(--rose); margin:0 .2rem 0 .3rem; }}
+.sv-gtitle i {{ font-style:normal; color: rgba(255,255,255,.7); }}
 .sv-gline {{ height:1px; background: rgba(255,255,255,.14); margin: 0 -16px 4px; }}
 .st-key-gback button, .st-key-gclose button {{ width:30px; height:30px; min-height:0 !important; padding:0 !important; border-radius:50% !important;
   background: rgba(255,255,255,.14) !important; border: 1px solid rgba(255,255,255,.22) !important; color:#fff !important; }}
@@ -236,14 +238,18 @@ footer {{ visibility:hidden; }}
 .sv-chip.accent {{ background: var(--accent); color: var(--ink); border-color: var(--accent); font-weight:600; }}
 
 /* product cards (Auralee) */
-.av-card {{ background: var(--panel); border:1px solid var(--line); }}
+.av-card {{ background: var(--panel); border:1px solid var(--line); transition: border-color .25s ease, box-shadow .25s ease; }}
+/* hover: the card and its View button get one rose frame */
+[class*="st-key-cbox-"] {{ gap:0 !important; transition: outline-color .25s ease; outline: 2px solid transparent; outline-offset: 0; }}
+[class*="st-key-cbox-"]:hover {{ outline-color: var(--accent); }}
+[class*="st-key-cbox-"] .av-card {{ margin-bottom:1rem; }}  /* offsets the markdown block's -1rem so the button sits below the card */
 .av-top {{ padding:12px 14px 10px; min-height:84px; }}
 .av-brand {{ font-family:'Inter',sans-serif; font-weight:600; color: var(--accent); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; min-height:1.15rem; }}
 .av-title {{ font-family:'Archivo',sans-serif; font-weight:600; color: var(--bone); font-size:.98rem; line-height:1.25; margin-top:.25rem;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
 .av-img {{ background:#ECE9E3; height:290px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }}
-.av-img img {{ max-height:272px; max-width:90%; object-fit:contain; filter: grayscale(1) contrast(1.04); transition: filter .45s ease, transform .45s ease; }}
-.av-card:hover .av-img img {{ filter:none; transform: scale(1.035); }}
+.av-img img {{ max-height:272px; max-width:90%; object-fit:contain; transition: transform .45s ease; }}
+[class*="st-key-cbox-"]:hover .av-img img {{ transform: scale(1.03); }}
 .av-badge {{ position:absolute; top:10px; right:10px; background: var(--ink); color: var(--bone); font-size:.64rem; letter-spacing:.1em;
   text-transform:uppercase; padding:.18rem .5rem; }}
 .av-tags {{ padding:10px 14px 0; height:2.1rem; overflow:hidden; }}
@@ -251,7 +257,7 @@ footer {{ visibility:hidden; }}
 .av-bottom {{ display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-top:1px solid var(--line); color: var(--muted); font-size:.76rem; }}
 .av-dots span {{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; border:1px solid rgba(255,255,255,.35); }}
 [class*="st-key-view-"] button {{ background: transparent !important; border:1px solid var(--line) !important; border-top:none !important;
-  border-radius:0 !important; margin-top:-1rem; }}
+  border-radius:0 !important; }}
 [class*="st-key-view-"] button p {{ font-size:.72rem !important; letter-spacing:.18em; text-transform:uppercase; color: var(--bone); }}
 [class*="st-key-view-"] button:hover {{ border-color: var(--accent) !important; }}
 [class*="st-key-view-"] button:hover p {{ color: var(--accent); }}
@@ -451,8 +457,7 @@ def colour_dots(row) -> str:
     p = item_preds(row.item_id)
     colour = p.get("pred_colour") if p is not None else None
     swatch = COLOUR_HEX.get(colour, "#555") if isinstance(colour, str) else "#555"
-    return (f'<span class="av-dots" title="{esc(colour)}"><span style="background:{swatch}"></span>'
-            '<span></span><span></span></span>')
+    return f'<span class="av-dots" title="{esc(colour)}"><span style="background:{swatch}"></span></span>'
 
 
 def card(row, tags, right: str) -> str:
@@ -477,9 +482,10 @@ def grid(results: pd.DataFrame, prefix: str, query_attrs=None, show_similarity=T
         with cols[i % 4]:
             sim = f"{row.similarity:.2f} match" if show_similarity and row.similarity == row.similarity else ""
             right = " · ".join(t for t in [price_text(row), sim] if t)
-            st.markdown(card(row, card_tags(row, query_attrs), right), unsafe_allow_html=True)
-            st.button("[ View ]", key=f"view-{prefix}-{row.item_id}", width="stretch",
-                      on_click=open_detail, args=(row.item_id, prefix))
+            with st.container(key=f"cbox-{prefix}-{row.item_id}"):
+                st.markdown(card(row, card_tags(row, query_attrs), right), unsafe_allow_html=True)
+                st.button("[ View ]", key=f"view-{prefix}-{row.item_id}", width="stretch",
+                          on_click=open_detail, args=(row.item_id, prefix))
 
 
 # --- sidebar ------------------------------------------------------------------------------------
@@ -530,8 +536,9 @@ def glass_header(title_html: str, back: bool = True, close: bool = True) -> None
     st.markdown('<div class="sv-gline"></div>', unsafe_allow_html=True)
 
 
-TITLE = "<span>Silhouette</span> Vision"
-MAST = '<div class="sv-mast"><div class="big">Silhouette</div><div class="scr">vision</div></div>'
+TITLE = "<b>SILHOUETTE</b><span>vision</span>"
+MAST = '<div class="sv-mast"><div class="big">Silhouette</div></div>'
+MAST_B = '<div class="sv-mast-b">vision</div>'
 
 
 def side(left: tuple[str, str], right: tuple[str, str, str]) -> tuple[str, str]:
@@ -664,6 +671,8 @@ def search_page(engine, filters, k, match_colour) -> None:
                     words_glass()
             if view == "photo" and ss.get("analysis"):
                 prog.markdown(progress_panel(len(STEPS), 0, ss.analysis["seconds"]), unsafe_allow_html=True)
+        if not has_results:
+            st.markdown(MAST_B, unsafe_allow_html=True)
     if view == "photo" and ss.get("analysis"):
         photo_results(engine, filters, k, match_colour)
     elif view == "words" and ss.get("words_q", "").strip():
@@ -671,7 +680,7 @@ def search_page(engine, filters, k, match_colour) -> None:
 
 
 def photo_glass(engine, prog) -> None:
-    glass_header(TITLE + " · photo")
+    glass_header(TITLE + "<i>· photo</i>")
     a = ss.get("analysis")
     with st.container(key="gbody"):
         if a is None:
@@ -703,7 +712,7 @@ def photo_glass(engine, prog) -> None:
 
 
 def words_glass() -> None:
-    glass_header(TITLE + " · words")
+    glass_header(TITLE + "<i>· words</i>")
     with st.container(key="gbody"):
         st.text_area("Describe it", key="words_q", height=170,
                      placeholder="Describe the piece you have in mind…\n\ne.g. a cream cable-knit cardigan with gold buttons")
@@ -745,7 +754,7 @@ def photo_results(engine, filters, k, match_colour) -> None:
         colour = engine.image_colour(a["query_img"]) if match_colour else None
         st.markdown('<div class="sv-display" style="margin-top:2.2rem">Your <em>look-alikes</em></div>'
                     '<div class="sv-note">✓ shared and ≈ close attributes with your photo; the number is visual similarity '
-                    '(1.00 = identical image). Hover a card to see its colour.</div>', unsafe_allow_html=True)
+                    "(1.00 = identical image). The dot shows each item's main colour.</div>", unsafe_allow_html=True)
         grid(engine.search(query, k, filters, query_colour=colour), "img", a["attrs"])
 
 
@@ -783,9 +792,9 @@ def best_match_panel(engine, query, filters, a) -> None:
     tier = matcher.tier(prob)
     colour = next(c for key, c in TIER_COLOUR.items() if tier.startswith(key))
     c1, c2 = st.columns([1, 1.25], gap="small")
-    with c1:
-        st.markdown(card(row, card_tags(row, a["attrs"]), f"{row.similarity:.2f} match"), unsafe_allow_html=True)
-        st.button("[ View ]", key=f"view-best-{row.item_id}", width="stretch", on_click=open_detail, args=(row.item_id, "img"))
+    with c1, st.container(key=f"cbox-best-{row.item_id}"):
+            st.markdown(card(row, card_tags(row, a["attrs"]), f"{row.similarity:.2f} match"), unsafe_allow_html=True)
+            st.button("[ View ]", key=f"view-best-{row.item_id}", width="stretch", on_click=open_detail, args=(row.item_id, "img"))
     with c2:
         st.markdown(f'<div class="bm"><div class="eb">best match</div><h3>{esc(tier)}</h3>'
                     f'<div class="bar"><div style="width:{prob:.0%};background:{colour}"></div></div>'
@@ -957,7 +966,7 @@ def forecast_page(engine) -> None:
             left.markdown(l_, unsafe_allow_html=True)
             right.markdown(r_, unsafe_allow_html=True)
         with mid, st.container(key="glass"):
-            glass_header(TITLE + " · forecast", close=False)
+            glass_header(TITLE + "<i>· forecast</i>", close=False)
             with st.container(key="gbody"):
                 if photo is None:
                     new = st.file_uploader("Photo", type=["jpg", "jpeg", "png", "webp"], key=f"fc-up-{ss.get('fc_n', 0)}")
@@ -972,6 +981,8 @@ def forecast_page(engine) -> None:
             if photo is not None:
                 with st.container(key="gact-fcnew"):
                     st.button("New photo", key="gact-fcnew-b", width="stretch", on_click=ss.pop, args=("fc_photo",))
+        if photo is None:
+            st.markdown(MAST_B, unsafe_allow_html=True)
     upload = io.BytesIO(photo) if photo else None
     with st.container(key="section"):
         st.markdown('<div class="sv-display">New product <em>forecast</em></div><div class="sv-note">Learned from 5,355 '
