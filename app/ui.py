@@ -228,7 +228,7 @@ footer {{ visibility:hidden; }}
 .sv-marquee span b {{ color: var(--accent); font-weight:400; }}
 @keyframes marquee {{ from {{ transform: translateX(0); }} to {{ transform: translateX(-100%); }} }}
 .sv-paper {{ display:inline-block; background:#EFEBE3; color: var(--ink); font-weight:600; font-size:.95rem; padding:.35rem 1rem .4rem; margin:.4rem 0 .9rem;
-  transform: rotate(-1.6deg); box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
   clip-path: polygon(0 8%, 6% 0, 14% 6%, 23% 1%, 33% 7%, 44% 0, 55% 6%, 66% 1%, 77% 7%, 88% 0, 100% 6%, 98% 52%, 100% 94%, 90% 100%, 79% 94%, 68% 100%, 57% 95%, 45% 100%, 33% 94%, 22% 100%, 11% 95%, 0 100%, 2% 50%); }}
 .sv-display {{ font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:800; letter-spacing:-.01em; text-transform:uppercase; color: var(--bone); font-size: clamp(2rem, 3.6vw, 3.4rem); line-height:1.02; margin:.2rem 0 .6rem; }}
 .sv-display em {{ font-style:normal; color: var(--accent); }}
@@ -242,20 +242,12 @@ footer {{ visibility:hidden; }}
 
 /* stickers, tape, hand-drawn notes (Gen Z collage layer; colours stay ink / bone / rose / cognac) */
 .sv-sts {{ display:flex; flex-wrap:wrap; align-items:center; gap:.75rem .6rem; margin:.3rem 0 1rem; }}
-.sv-st {{ display:inline-block; font-family:'Archivo',sans-serif; font-stretch:108%; font-weight:800; text-transform:uppercase; font-size:.8rem;
-  padding:.42rem .85rem; border-radius:999px; border:3px solid #fff; box-shadow:0 6px 14px rgba(0,0,0,.42); transition: transform .25s ease; }}
-.sv-st small {{ font-family:'Inter',sans-serif; font-weight:600; font-size:.62rem; letter-spacing:.08em; opacity:.7; margin-right:.3rem; }}
-.sv-st:hover {{ transform: rotate(0deg) scale(1.07) !important; }}
-.sv-st.s0 {{ background: var(--rose); color: var(--ink); transform: rotate(-5deg); }}
-.sv-st.s1 {{ background: var(--bone); color: var(--ink); transform: rotate(3deg); border-radius:6px; }}
-.sv-st.s2 {{ background: var(--cognac); color:#fff; transform: rotate(-2deg); }}
-.sv-st.s3 {{ background: var(--ink); color: var(--rose); border-color: var(--rose); transform: rotate(5deg); }}
-.sv-st.round {{ background:#fff; color: var(--ink); border-radius:50%; width:84px; height:84px; display:inline-flex; align-items:center; justify-content:center;
-  text-align:center; line-height:1.05; padding:0; font-size:.68rem; transform: rotate(-6deg); vertical-align:middle; }}
+.sv-st {{ display:inline-flex; align-items:baseline; gap:.4rem; font-family:'Archivo',sans-serif; font-stretch:108%; font-weight:700;
+  text-transform:uppercase; font-size:.78rem; letter-spacing:.03em; padding:.4rem .9rem; border-radius:999px; color: var(--ink); }}
+.sv-st small {{ font-family:'Inter',sans-serif; font-weight:600; font-size:.6rem; letter-spacing:.1em; opacity:.62; }}
+.sv-st.s0 {{ background: var(--rose); }}
+.sv-st.s1 {{ background: var(--bone); }}
 .av-card {{ position:relative; }}
-.sv-tape {{ position:absolute; z-index:4; width:84px; height:24px; top:-12px; left:50%; transform: translateX(-50%) rotate(-4deg);
-  background: rgba(234,219,203,.82); box-shadow: 0 2px 4px rgba(0,0,0,.18);
-  clip-path: polygon(0 10%, 4% 0, 8% 12%, 12% 0, 16% 10%, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%); }}
 .sv-circle {{ position:absolute; z-index:3; left:-14px; right:-14px; top:66px; height:320px; width:calc(100% + 28px); pointer-events:none; }}
 .sv-circle path {{ fill:none; stroke: var(--rose); stroke-width:3; stroke-linecap:round; stroke-dasharray:1200; animation: draw 1.4s ease .3s both; }}
 [class*="st-key-cbox-"]:hover .sv-circle path {{ animation: draw 1s ease both; }}
@@ -266,7 +258,7 @@ footer {{ visibility:hidden; }}
 /* colour story: paint chips */
 .sv-chips {{ display:flex; gap:10px; flex-wrap:wrap; margin:.4rem 0 1.2rem; }}
 .sv-pc {{ width:84px; background:#fff; padding:5px 5px 8px; box-shadow:0 8px 18px rgba(0,0,0,.4); transition: transform .25s ease; }}
-.sv-pc:hover {{ transform: translateY(-5px) rotate(-2deg); }}
+.sv-pc:hover {{ transform: translateY(-4px); }}
 .sv-pc div {{ height:70px; }}
 .sv-pc b {{ display:block; font:700 .68rem 'Archivo',sans-serif; color: var(--ink); text-transform:uppercase; margin-top:6px; letter-spacing:.03em; }}
 .sv-pc span {{ font-size:.64rem; color:#7A746B; font-variant-numeric: tabular-nums; }}
@@ -281,7 +273,7 @@ footer {{ visibility:hidden; }}
 .dial .ticks {{ position:absolute; left:-4px; right:-4px; bottom:-18px; display:flex; justify-content:space-between; font-size:.6rem; color:#7A746B;
   letter-spacing:.08em; text-transform:uppercase; }}
 .bm-top h3 {{ margin:0 !important; }}
-@media (prefers-reduced-motion: reduce) {{ .sv-circle path {{ animation:none; }} .sv-st, .sv-pc {{ transition:none; }} }}
+@media (prefers-reduced-motion: reduce) {{ .sv-circle path {{ animation:none; }} .sv-pc {{ transition:none; }} }}
 
 /* product cards (Auralee) */
 .av-card {{ background: var(--panel); border:1px solid var(--line); transition: border-color .25s ease, box-shadow .25s ease; }}
@@ -332,9 +324,8 @@ footer {{ visibility:hidden; }}
 .dt-grid {{ display:grid; grid-template-columns: 34% 66%; row-gap:1.05rem; font-size:.84rem; }}
 .dt-grid .k {{ color:#A39E95; text-transform:uppercase; letter-spacing:.06em; font-size:.76rem; padding-top:.15rem; }}
 .dt-grid .v {{ color: var(--ink); text-transform:uppercase; }}
-.dt-grid .sz {{ display:inline-block; padding:.2rem .65rem; background: var(--bone); border:2px solid #fff; border-radius:999px; color: var(--ink); font-family:'Archivo',sans-serif;
-  font-weight:800; font-size:.72rem; letter-spacing:.04em; box-shadow:0 3px 8px rgba(20,19,18,.18); transform: rotate(-2deg); }}
-.dt-grid .v:nth-of-type(even) .sz {{ transform: rotate(2deg); background: var(--rose); }}
+.dt-grid .sz {{ display:inline-block; padding:.22rem .7rem; background: var(--rose); border-radius:999px; color: var(--ink);
+  font-family:'Archivo',sans-serif; font-weight:700; font-size:.72rem; letter-spacing:.04em; }}
 .dt-grid ul {{ margin:0; padding-left:1rem; }}
 .dt-grid li::marker {{ color: var(--cognac); }}
 .dt-cta {{ display:block; background: var(--ink); color: var(--bone) !important; text-align:center; padding:1.05rem; margin:0 26px 0 0;
@@ -470,7 +461,7 @@ def chips(values, kind: str = "") -> str:
 
 def stickers(items: list[tuple[str, str]]) -> str:
     """Die-cut stickers: (small label, text), cycling the four palette styles."""
-    return ('<div class="sv-sts">' + "".join(f'<span class="sv-st s{i % 4}"><small>{esc(lbl)}</small>{esc(txt)}</span>'
+    return ('<div class="sv-sts">' + "".join(f'<span class="sv-st s{i % 2}"><small>{esc(lbl)}</small>{esc(txt)}</span>'
                                              for i, (lbl, txt) in enumerate(items)) + "</div>")
 
 
@@ -547,9 +538,9 @@ CIRCLE = ('<svg class="sv-circle" viewBox="0 0 200 320" preserveAspectRatio="non
           'C 188 262, 150 314, 96 312 C 34 310, 6 256, 8 160 C 10 62, 44 12, 112 14"/></svg>')
 
 
-def card(row, tags, right: str, tape: bool = False, pick: str = "") -> str:
+def card(row, tags, right: str, pick: str = "") -> str:
     badge = "pre-owned" if row.is_preowned else SOURCE_LABEL.get(row.source, row.source)
-    extra = ('<span class="sv-tape"></span>' if tape else "") + (f'{CIRCLE}<span class="sv-pick">{pick}</span>' if pick else "")
+    extra = f'{CIRCLE}<span class="sv-pick">{pick}</span>' if pick else ""
     return (f'<div class="av-card">{extra}<div class="av-top"><div class="av-brand">{esc(row.brand) or "&nbsp;"}</div>'
             f'<div class="av-title">{esc(row.title)}</div></div>'
             f'<div class="av-img"><img src="{data_uri(str(DATA_ROOT / row.image_path))}"/><span class="av-badge">{esc(badge)}</span></div>'
@@ -833,7 +824,13 @@ def photo_results(engine, filters, k, match_colour) -> None:
             st.markdown(stickers([(x["label"], f"{x['value']} · {x['confidence']:.0%}") for x in a["attrs"]]),
                         unsafe_allow_html=True)
             if "palette" not in a:
-                from silhouette_vision.colour import palette
+                import importlib
+
+                from silhouette_vision import colour
+
+                if not hasattr(colour, "palette"):  # hosted: a rerun after a push can keep the old module loaded
+                    importlib.reload(colour)
+                palette = colour.palette
 
                 a["palette"] = palette(a["query_img"])
             st.markdown('<span class="sv-paper">colour story</span>' + paint_chips(a["palette"]), unsafe_allow_html=True)
@@ -866,7 +863,7 @@ def named_panel(engine, a) -> None:
     st.markdown(f'<span class="sv-paper">{"recognised model" if prob >= 0.8 else "probably"}</span>'
                 f'<div class="sv-display" style="font-size:2.6rem">{esc(model.label)}</div>'
                 '<div class="sv-sts">' + f'<span class="sv-st s0"><small>model</small>{prob:.0%} sure</span>'
-                + ('' if len(rows) else '<span class="sv-st round">not in<br>catalog</span>') + '</div>'
+                + ('' if len(rows) else '<span class="sv-st s1">not in catalog</span>') + '</div>'
                 f'<div class="sv-note">{esc(stock)} · <a href="{web}" target="_blank" style="color:var(--rose)">find it online ↗</a></div>',
                 unsafe_allow_html=True)
     if len(rows):
@@ -887,7 +884,7 @@ def best_match_panel(engine, query, filters, a) -> None:
     colour = next(c for key, c in TIER_COLOUR.items() if tier.startswith(key))
     c1, c2 = st.columns([1, 1.25], gap="small")
     with c1, st.container(key=f"cbox-best-{row.item_id}"):
-        st.markdown(card(row, card_tags(row, a["attrs"]), f"{row.similarity:.2f} match", tape=True), unsafe_allow_html=True)
+        st.markdown(card(row, card_tags(row, a["attrs"]), f"{row.similarity:.2f} match"), unsafe_allow_html=True)
         st.button("[ View ]", key=f"view-best-{row.item_id}", width="stretch", on_click=open_detail, args=(row.item_id, "img"))
     with c2:
         st.markdown(f'<div class="bm"><div class="eb">best match</div><div class="bm-top">'
