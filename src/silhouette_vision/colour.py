@@ -31,19 +31,3 @@ def colour_hist(image: Image.Image) -> np.ndarray:
 
 def intersection(query: np.ndarray, hists: np.ndarray) -> np.ndarray:
     return np.minimum(query[None, :], hists).sum(1)
-
-
-def palette(image: Image.Image, n: int = 4, min_share: float = 0.04) -> list[tuple[tuple[int, int, int], float]]:
-    """Main colours of the non-background pixels as (rgb, share), largest first (median cut)."""
-    img = image.convert("RGB")
-    img.thumbnail((128, 128))
-    rgb = np.asarray(img, dtype=np.uint8).reshape(-1, 3)
-    bg = (rgb.min(1) > 225) | ((rgb.max(1).astype(int) - rgb.min(1) < 12) & (rgb.mean(1) > 200))
-    fg = rgb[~bg] if (~bg).sum() > 50 else rgb
-    strip = Image.fromarray(fg[None, :, :])
-    quant = strip.quantize(colors=n, method=Image.Quantize.MEDIANCUT)
-    counts = np.bincount(np.asarray(quant).ravel(), minlength=n)
-    colours = np.asarray(quant.getpalette()[: 3 * n]).reshape(-1, 3)
-    order = np.argsort(-counts)
-    total = counts.sum()
-    return [(tuple(int(c) for c in colours[i]), counts[i] / total) for i in order if counts[i] / total >= min_share]
