@@ -63,6 +63,9 @@ Images (Myntra, MIT) and the catalog sources' own labels.
 GRAIN = ("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'>"
          "<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/>"
          "</filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")
+SCRIBBLE = ("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 16' preserveAspectRatio='none'>"
+            "<path d='M3 10 C 60 3, 120 14, 180 7 S 270 4, 297 9' fill='none' stroke='%23E4B6A1' stroke-width='3' "
+            "stroke-linecap='round'/></svg>")
 CLOUD = ("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48' fill='none' "
          "stroke='white' stroke-opacity='.85' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'>"
          "<path d='M18 40H14a10 10 0 0 1-1.5-19.9A14 14 0 0 1 39.5 13 11 11 0 0 1 52 24a9 9 0 0 1-2 16h-4'/>"
@@ -74,7 +77,7 @@ def css() -> str:
     hero = "data:image/jpeg;base64," + base64.b64encode((ASSETS / "runway.jpg").read_bytes()).decode()
     return f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..900&family=Inter:wght@300;400;500;600;700&family=Mr+Dafoe&family=Pinyon+Script&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..900&family=Inter:wght@300;400;500;600;700&family=Caveat:wght@700&family=Mr+Dafoe&family=Pinyon+Script&display=swap');
 :root {{ --ink:#141312; --panel:#1E1D1B; --line:#34322F; --bone:#F1EEE7; --muted:#A39E95; --accent:#E4B6A1; --rose:#E4B6A1; --cognac:#9E6347; --champ:#EADBCB; }}
 html, body, [class*="css"], .stMarkdown, button, input, textarea, select {{ font-family:'Inter',sans-serif; }}
 [data-testid="stAppViewContainer"] {{ background: var(--ink); }}
@@ -237,6 +240,49 @@ footer {{ visibility:hidden; }}
 .sv-chip.different {{ color: var(--muted); }}
 .sv-chip.accent {{ background: var(--accent); color: var(--ink); border-color: var(--accent); font-weight:600; }}
 
+/* stickers, tape, hand-drawn notes (Gen Z collage layer; colours stay ink / bone / rose / cognac) */
+.sv-sts {{ display:flex; flex-wrap:wrap; align-items:center; gap:.75rem .6rem; margin:.3rem 0 1rem; }}
+.sv-st {{ display:inline-block; font-family:'Archivo',sans-serif; font-stretch:108%; font-weight:800; text-transform:uppercase; font-size:.8rem;
+  padding:.42rem .85rem; border-radius:999px; border:3px solid #fff; box-shadow:0 6px 14px rgba(0,0,0,.42); transition: transform .25s ease; }}
+.sv-st small {{ font-family:'Inter',sans-serif; font-weight:600; font-size:.62rem; letter-spacing:.08em; opacity:.7; margin-right:.3rem; }}
+.sv-st:hover {{ transform: rotate(0deg) scale(1.07) !important; }}
+.sv-st.s0 {{ background: var(--rose); color: var(--ink); transform: rotate(-5deg); }}
+.sv-st.s1 {{ background: var(--bone); color: var(--ink); transform: rotate(3deg); border-radius:6px; }}
+.sv-st.s2 {{ background: var(--cognac); color:#fff; transform: rotate(-2deg); }}
+.sv-st.s3 {{ background: var(--ink); color: var(--rose); border-color: var(--rose); transform: rotate(5deg); }}
+.sv-st.round {{ background:#fff; color: var(--ink); border-radius:50%; width:84px; height:84px; display:inline-flex; align-items:center; justify-content:center;
+  text-align:center; line-height:1.05; padding:0; font-size:.68rem; transform: rotate(-6deg); vertical-align:middle; }}
+.av-card {{ position:relative; }}
+.sv-tape {{ position:absolute; z-index:4; width:84px; height:24px; top:-12px; left:50%; transform: translateX(-50%) rotate(-4deg);
+  background: rgba(234,219,203,.82); box-shadow: 0 2px 4px rgba(0,0,0,.18);
+  clip-path: polygon(0 10%, 4% 0, 8% 12%, 12% 0, 16% 10%, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%); }}
+.sv-circle {{ position:absolute; z-index:3; left:-14px; right:-14px; top:66px; height:320px; width:calc(100% + 28px); pointer-events:none; }}
+.sv-circle path {{ fill:none; stroke: var(--rose); stroke-width:3; stroke-linecap:round; stroke-dasharray:1200; animation: draw 1.4s ease .3s both; }}
+[class*="st-key-cbox-"]:hover .sv-circle path {{ animation: draw 1s ease both; }}
+@keyframes draw {{ from {{ stroke-dashoffset:1200; }} to {{ stroke-dashoffset:0; }} }}
+.sv-pick {{ position:absolute; z-index:4; top:-30px; right:-4px; font-family:'Caveat',cursive; font-weight:700; font-size:1.6rem; color: var(--rose);
+  transform: rotate(-5deg); white-space:nowrap; text-shadow: 0 2px 8px rgba(0,0,0,.6); }}
+.sv-display em {{ background: url("{SCRIBBLE}") left bottom / 100% 14px no-repeat; padding-bottom:.18em; }}
+/* colour story: paint chips */
+.sv-chips {{ display:flex; gap:10px; flex-wrap:wrap; margin:.4rem 0 1.2rem; }}
+.sv-pc {{ width:84px; background:#fff; padding:5px 5px 8px; box-shadow:0 8px 18px rgba(0,0,0,.4); transition: transform .25s ease; }}
+.sv-pc:hover {{ transform: translateY(-5px) rotate(-2deg); }}
+.sv-pc div {{ height:70px; }}
+.sv-pc b {{ display:block; font:700 .68rem 'Archivo',sans-serif; color: var(--ink); text-transform:uppercase; margin-top:6px; letter-spacing:.03em; }}
+.sv-pc span {{ font-size:.64rem; color:#7A746B; font-variant-numeric: tabular-nums; }}
+/* match dial */
+.bm-top {{ display:flex; flex-direction:column; align-items:flex-start; gap:30px; margin:.9rem 0 1rem; }}
+.dial {{ --p:50; --c: var(--cognac); width:170px; flex:none; aspect-ratio: 2 / 1.12; position:relative; }}
+.dial .arc {{ position:absolute; inset:0 0 auto 0; aspect-ratio: 2 / 1; overflow:hidden; }}
+.dial .arc::before {{ content:""; position:absolute; left:0; top:0; width:100%; aspect-ratio:1; border-radius:50%;
+  background: conic-gradient(from 270deg, var(--c) 0 calc(var(--p) * 1.8deg), #DCD5C8 0 180deg, transparent 0); }}
+.dial .arc::after {{ content:""; position:absolute; left:15%; top:15%; width:70%; aspect-ratio:1; border-radius:50%; background: var(--bone); }}
+.dial .num {{ position:absolute; left:0; right:0; bottom:2px; text-align:center; font-family:'Anton',sans-serif; font-size:2.3rem; line-height:1; color: var(--ink); }}
+.dial .ticks {{ position:absolute; left:-4px; right:-4px; bottom:-18px; display:flex; justify-content:space-between; font-size:.6rem; color:#7A746B;
+  letter-spacing:.08em; text-transform:uppercase; }}
+.bm-top h3 {{ margin:0 !important; }}
+@media (prefers-reduced-motion: reduce) {{ .sv-circle path {{ animation:none; }} .sv-st, .sv-pc {{ transition:none; }} }}
+
 /* product cards (Auralee) */
 .av-card {{ background: var(--panel); border:1px solid var(--line); transition: border-color .25s ease, box-shadow .25s ease; }}
 /* hover: the card and its View button get one rose frame */
@@ -267,8 +313,6 @@ footer {{ visibility:hidden; }}
 .st-key-gbody [data-testid="stElementContainer"]:has([data-testid="stImage"]) {{ width:100% !important; display:flex; justify-content:center; }}
 .bm .eb {{ font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:#7A746B; }}
 .bm h3 {{ font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:800; text-transform:uppercase; font-size:1.45rem; line-height:1.1; overflow-wrap:normal; word-break:keep-all; margin:.35rem 0 .9rem; color: var(--ink); }}
-.bm .bar {{ height:10px; background:#DCD5C8; }}
-.bm .bar > div {{ height:100%; }}
 .bm .row {{ display:flex; justify-content:space-between; margin:.55rem 0 .9rem; font-size:.9rem; }}
 .bm p {{ color:#5A544C; font-size:.84rem; line-height:1.55; }}
 
@@ -288,7 +332,9 @@ footer {{ visibility:hidden; }}
 .dt-grid {{ display:grid; grid-template-columns: 34% 66%; row-gap:1.05rem; font-size:.84rem; }}
 .dt-grid .k {{ color:#A39E95; text-transform:uppercase; letter-spacing:.06em; font-size:.76rem; padding-top:.15rem; }}
 .dt-grid .v {{ color: var(--ink); text-transform:uppercase; }}
-.dt-grid .sz {{ display:inline-block; padding:.12rem .55rem; border:1px solid var(--ink); color: var(--ink); font-size:.74rem; letter-spacing:.06em; }}
+.dt-grid .sz {{ display:inline-block; padding:.2rem .65rem; background: var(--bone); border:2px solid #fff; border-radius:999px; color: var(--ink); font-family:'Archivo',sans-serif;
+  font-weight:800; font-size:.72rem; letter-spacing:.04em; box-shadow:0 3px 8px rgba(20,19,18,.18); transform: rotate(-2deg); }}
+.dt-grid .v:nth-of-type(even) .sz {{ transform: rotate(2deg); background: var(--rose); }}
 .dt-grid ul {{ margin:0; padding-left:1rem; }}
 .dt-grid li::marker {{ color: var(--cognac); }}
 .dt-cta {{ display:block; background: var(--ink); color: var(--bone) !important; text-align:center; padding:1.05rem; margin:0 26px 0 0;
@@ -422,6 +468,43 @@ def chips(values, kind: str = "") -> str:
     return "".join(f'<span class="sv-chip {kind}">{esc(v)}</span>' for v in values if v)
 
 
+def stickers(items: list[tuple[str, str]]) -> str:
+    """Die-cut stickers: (small label, text), cycling the four palette styles."""
+    return ('<div class="sv-sts">' + "".join(f'<span class="sv-st s{i % 4}"><small>{esc(lbl)}</small>{esc(txt)}</span>'
+                                             for i, (lbl, txt) in enumerate(items)) + "</div>")
+
+
+SHADES = {"Espresso": "#3B2A22", "Chocolate": "#55392A", "Taupe": "#8B7D6B", "Camel": "#B4875A", "Ivory": "#F3EEDF"}
+
+
+def lab(rgb) -> np.ndarray:
+    """sRGB 0-255 to CIELAB (D65), so colour names are matched the way the eye sees difference."""
+    c = np.asarray(rgb, dtype=float) / 255
+    c = np.where(c > 0.04045, ((c + 0.055) / 1.055) ** 2.4, c / 12.92)
+    xyz = np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]]) @ c
+    f = np.cbrt(xyz / [0.9505, 1.0, 1.089])
+    f = np.where(xyz / [0.9505, 1.0, 1.089] > 0.008856, f, 7.787 * xyz / [0.9505, 1.0, 1.089] + 16 / 116)
+    return np.array([116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])])
+
+
+def colour_name(rgb) -> str:
+    named = {k: v for k, v in {**COLOUR_HEX, **SHADES}.items() if v.startswith("#")}
+    target = lab(rgb)
+    dist = {k: np.linalg.norm(lab([int(v[i:i + 2], 16) for i in (1, 3, 5)]) - target) for k, v in named.items()}
+    return min(dist, key=dist.get)
+
+
+def paint_chips(colours) -> str:
+    merged = {}  # one chip per name: shades that round to the same name are summed
+    for c, share in colours:
+        name = colour_name(c)
+        merged[name] = (merged[name][0], merged[name][1] + share) if name in merged else (c, share)
+    colours = [(c, sh) for c, sh in merged.values()]
+    return ('<div class="sv-chips">' + "".join(
+        f'<div class="sv-pc"><div style="background:rgb{tuple(c)}"></div><b>{colour_name(c)}</b><span>{share:.0%}</span></div>'
+        for c, share in colours) + "</div>")
+
+
 def price_text(row) -> str:
     band = getattr(row, "price_band", None)
     return f"Resale {band} SEK" if isinstance(band, str) and band else ""
@@ -460,9 +543,14 @@ def colour_dots(row) -> str:
     return f'<span class="av-dots" title="{esc(colour)}"><span style="background:{swatch}"></span></span>'
 
 
-def card(row, tags, right: str) -> str:
+CIRCLE = ('<svg class="sv-circle" viewBox="0 0 200 320" preserveAspectRatio="none"><path d="M104 8 C 168 4, 196 60, 192 160 '
+          'C 188 262, 150 314, 96 312 C 34 310, 6 256, 8 160 C 10 62, 44 12, 112 14"/></svg>')
+
+
+def card(row, tags, right: str, tape: bool = False, pick: str = "") -> str:
     badge = "pre-owned" if row.is_preowned else SOURCE_LABEL.get(row.source, row.source)
-    return (f'<div class="av-card"><div class="av-top"><div class="av-brand">{esc(row.brand) or "&nbsp;"}</div>'
+    extra = ('<span class="sv-tape"></span>' if tape else "") + (f'{CIRCLE}<span class="sv-pick">{pick}</span>' if pick else "")
+    return (f'<div class="av-card">{extra}<div class="av-top"><div class="av-brand">{esc(row.brand) or "&nbsp;"}</div>'
             f'<div class="av-title">{esc(row.title)}</div></div>'
             f'<div class="av-img"><img src="{data_uri(str(DATA_ROOT / row.image_path))}"/><span class="av-badge">{esc(badge)}</span></div>'
             f'<div class="av-tags">{chips(tags)}</div>'
@@ -473,7 +561,7 @@ def open_detail(item_id: str, origin: str) -> None:
     ss.detail, ss.detail_from = item_id, origin
 
 
-def grid(results: pd.DataFrame, prefix: str, query_attrs=None, show_similarity=True) -> None:
+def grid(results: pd.DataFrame, prefix: str, query_attrs=None, show_similarity=True, pick: str = "") -> None:
     if results.empty:
         st.info("No products match these filters.")
         return
@@ -483,7 +571,7 @@ def grid(results: pd.DataFrame, prefix: str, query_attrs=None, show_similarity=T
             sim = f"{row.similarity:.2f} match" if show_similarity and row.similarity == row.similarity else ""
             right = " · ".join(t for t in [price_text(row), sim] if t)
             with st.container(key=f"cbox-{prefix}-{row.item_id}"):
-                st.markdown(card(row, card_tags(row, query_attrs), right), unsafe_allow_html=True)
+                st.markdown(card(row, card_tags(row, query_attrs), right, pick=pick if i == 0 else ""), unsafe_allow_html=True)
                 st.button("[ View ]", key=f"view-{prefix}-{row.item_id}", width="stretch",
                           on_click=open_detail, args=(row.item_id, prefix))
 
@@ -742,8 +830,13 @@ def photo_results(engine, filters, k, match_colour) -> None:
         left, right = st.columns([5, 7], gap="large")
         with left:
             st.markdown('<span class="sv-paper">what we see</span>', unsafe_allow_html=True)
-            st.markdown(chips([f"{x['label']}: {x['value']} · {x['confidence']:.0%}" for x in a["attrs"]]),
+            st.markdown(stickers([(x["label"], f"{x['value']} · {x['confidence']:.0%}") for x in a["attrs"]]),
                         unsafe_allow_html=True)
+            if "palette" not in a:
+                from silhouette_vision.colour import palette
+
+                a["palette"] = palette(a["query_img"])
+            st.markdown('<span class="sv-paper">colour story</span>' + paint_chips(a["palette"]), unsafe_allow_html=True)
             predictor, _ = get_attributes()
             kind = next((x["value"] for x in a["attrs"] if x["attribute"] == "article_type"), None)
             if predictor is not None and predictor.type_to_category.get(kind) == "jewellery":
@@ -755,7 +848,7 @@ def photo_results(engine, filters, k, match_colour) -> None:
         st.markdown('<div class="sv-display" style="margin-top:2.2rem">Your <em>look-alikes</em></div>'
                     '<div class="sv-note">✓ shared and ≈ close attributes with your photo; the number is visual similarity '
                     "(1.00 = identical image). The dot shows each item's main colour.</div>", unsafe_allow_html=True)
-        grid(engine.search(query, k, filters, query_colour=colour), "img", a["attrs"])
+        grid(engine.search(query, k, filters, query_colour=colour), "img", a["attrs"], pick="closest pick!")
 
 
 def named_panel(engine, a) -> None:
@@ -772,7 +865,8 @@ def named_panel(engine, a) -> None:
     stock = f"{len(rows)} listing{'s' if len(rows) != 1 else ''} in the catalog" if len(rows) else "Not in our catalog"
     st.markdown(f'<span class="sv-paper">{"recognised model" if prob >= 0.8 else "probably"}</span>'
                 f'<div class="sv-display" style="font-size:2.6rem">{esc(model.label)}</div>'
-                f'{chips([f"model confidence {prob:.0%}"], "accent")}'
+                '<div class="sv-sts">' + f'<span class="sv-st s0"><small>model</small>{prob:.0%} sure</span>'
+                + ('' if len(rows) else '<span class="sv-st round">not in<br>catalog</span>') + '</div>'
                 f'<div class="sv-note">{esc(stock)} · <a href="{web}" target="_blank" style="color:var(--rose)">find it online ↗</a></div>',
                 unsafe_allow_html=True)
     if len(rows):
@@ -793,11 +887,13 @@ def best_match_panel(engine, query, filters, a) -> None:
     colour = next(c for key, c in TIER_COLOUR.items() if tier.startswith(key))
     c1, c2 = st.columns([1, 1.25], gap="small")
     with c1, st.container(key=f"cbox-best-{row.item_id}"):
-            st.markdown(card(row, card_tags(row, a["attrs"]), f"{row.similarity:.2f} match"), unsafe_allow_html=True)
-            st.button("[ View ]", key=f"view-best-{row.item_id}", width="stretch", on_click=open_detail, args=(row.item_id, "img"))
+        st.markdown(card(row, card_tags(row, a["attrs"]), f"{row.similarity:.2f} match", tape=True), unsafe_allow_html=True)
+        st.button("[ View ]", key=f"view-best-{row.item_id}", width="stretch", on_click=open_detail, args=(row.item_id, "img"))
     with c2:
-        st.markdown(f'<div class="bm"><div class="eb">best match</div><h3>{esc(tier)}</h3>'
-                    f'<div class="bar"><div style="width:{prob:.0%};background:{colour}"></div></div>'
+        st.markdown(f'<div class="bm"><div class="eb">best match</div><div class="bm-top">'
+                    f'<div class="dial" style="--p:{prob * 100:.0f};--c:{colour}"><div class="arc"></div><div class="num">{prob:.0%}</div>'
+                    '<div class="ticks"><span>unlikely</span><span>exact</span></div></div>'
+                    f'<h3>{esc(tier)}</h3></div>'
                     f'<div class="row"><b>Exact-match likelihood {prob:.0%}</b><span>similarity {row.similarity:.2f}</span></div>'
                     "<p>Calibrated on benchmark photos: when this says 80%+, it was the exact product 88% of the time; "
                     "for products we don't stock it claims 80%+ for 0.1% of photos. It rewards a result that stands out "
@@ -813,7 +909,7 @@ def words_results(engine, filters, k) -> None:
                     '<div class="sv-note">Matched on look (image embedding) and words (brand, title, type) together.</div>',
                     unsafe_allow_html=True)
         # No similarity number: text-image cosines are small by nature (~0.1) and would read as poor.
-        grid(engine.search(engine.text_vector(text), k, filters, keywords=text), "txt", show_similarity=False)
+        grid(engine.search(engine.text_vector(text), k, filters, keywords=text), "txt", show_similarity=False, pick="top pick!")
 
 
 # --- product detail (Allure) ----------------------------------------------------------------------
