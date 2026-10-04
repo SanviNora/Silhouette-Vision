@@ -43,7 +43,7 @@ COLOUR_HEX = {"Black": "#151515", "White": "#F5F3EE", "Off White": "#EEE8DC", "C
               "Brown": "#6B4A32", "Tan": "#B98A5E", "Beige": "#D8C3A0", "Khaki": "#B5A47A", "Gold": "#C8A24B",
               "Bronze": "#9C6B3C", "Copper": "#B0693E",
               "Multi": "conic-gradient(#E07B39,#3F6FC4,#4E8A4B,#E59BB3,#E07B39)"}
-TIER_COLOUR = {"Very likely": "#9DB52F", "Possibly": "#C8916F", "No confident": "#8C877F"}
+TIER_COLOUR = {"Very likely": "#9E6347", "Possibly": "#C99A80", "No confident": "#8C877F"}
 ABOUT = """
 Portfolio project, not affiliated with any brand or retailer.
 [Code, methods and evaluation](https://github.com/SanviNora/Silhouette-Vision)
@@ -74,31 +74,45 @@ def css() -> str:
     hero = "data:image/jpeg;base64," + base64.b64encode((ASSETS / "runway.jpg").read_bytes()).decode()
     return f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;500;600;700&family=Pinyon+Script&display=swap');
-:root {{ --ink:#141312; --panel:#1E1D1B; --line:#34322F; --bone:#F1EEE7; --muted:#A39E95; --lime:#D8F36A; --rose:#E4B6A1; }}
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..900&family=Inter:wght@300;400;500;600;700&family=Mr+Dafoe&family=Pinyon+Script&display=swap');
+:root {{ --ink:#141312; --panel:#1E1D1B; --line:#34322F; --bone:#F1EEE7; --muted:#A39E95; --accent:#E4B6A1; --rose:#E4B6A1; --cognac:#9E6347; --champ:#EADBCB; }}
 html, body, [class*="css"], .stMarkdown, button, input, textarea, select {{ font-family:'Inter',sans-serif; }}
 [data-testid="stAppViewContainer"] {{ background: var(--ink); }}
 [data-testid="stHeader"] {{ background: transparent; }}
 [data-testid="stHeader"], [data-testid="stHeader"] div {{ pointer-events: none !important; }}
 [data-testid="stHeader"] button, [data-testid="stHeader"] a {{ pointer-events: auto !important; }}
 [data-testid="stAppDeployButton"] {{ display: none; }}
-[class*="st-key-hero"] > div:first-child, .st-key-herosm > div:first-child {{ padding-right: 40px; }}
 [data-testid="stMainBlockContainer"], .block-container {{ padding: 0 !important; max-width: 100% !important; }}
 section[data-testid="stSidebar"] {{ border-right: 1px solid #DDD6C8; }}
-section[data-testid="stSidebar"] h3 {{ font-family:'Anton',sans-serif; letter-spacing:.05em; font-weight:400; text-transform:uppercase; }}
+section[data-testid="stSidebar"] h3 {{ font-family:'Archivo',sans-serif; font-stretch:110%; letter-spacing:.08em; font-weight:800; font-size:1.05rem; text-transform:uppercase; }}
 footer {{ visibility:hidden; }}
 
 /* hero: runway photo + film grain (cover page and section banners) */
-.st-key-hero, .st-key-herosm {{ position:relative; padding: 18px 44px 64px; overflow:hidden;
+.st-key-hero, .st-key-herosm {{ position:relative; padding: 18px 60px 64px; overflow:hidden;
   background: linear-gradient(180deg, rgba(8,8,8,.30) 0%, rgba(8,8,8,.12) 45%, rgba(20,19,18,.94) 100%),
               url('{hero}') center 42% / cover no-repeat; }}
 .st-key-hero {{ min-height: 100vh; }}
-.st-key-heroc {{ position:relative; padding: 18px 44px 46px; overflow:hidden;
+.st-key-heroc {{ position:relative; padding: 18px 60px 46px; overflow:hidden;
   background: linear-gradient(180deg, rgba(8,8,8,.30) 0%, rgba(8,8,8,.12) 45%, rgba(20,19,18,.94) 100%),
               url('{hero}') center 42% / cover no-repeat; }}
 .st-key-heroc::before {{ content:""; position:absolute; inset:0; background-image:url("{GRAIN}"); opacity:.16; mix-blend-mode:overlay; pointer-events:none; }}
 .st-key-heroc > div {{ position:relative; z-index:1; }}
 .st-key-heroc .st-key-glass {{ margin-top: 5vh; }}
+/* masthead over the photo (Margelle-style): huge condensed name, brush script across it; the glass card overlaps it */
+.st-key-hero .sv-logo {{ visibility:hidden; }}
+.sv-mast {{ position:relative; text-align:center; container-type:inline-size; margin: 6vh 0 0; pointer-events:none; }}
+.sv-mast .big {{ font-family:'Anton',sans-serif; font-size:19.6cqi; line-height:.84; color: rgba(241,238,231,.92); text-transform:uppercase;
+  letter-spacing:.004em; text-shadow: 0 10px 50px rgba(0,0,0,.35); }}
+.sv-mast .scr {{ position:absolute; right:3%; bottom:-6%; font-family:'Mr Dafoe',cursive; font-size:8.4cqi; color:#fff; transform: rotate(-7deg);
+  text-shadow: 0 4px 24px rgba(0,0,0,.45); z-index:3; }}
+.st-key-hero .st-key-glass {{ margin-top: -3.6vw; }}
+/* side text next to the card once results are shown (Margelle look-book) */
+.sv-side {{ font-family:'Anton',sans-serif; font-size: clamp(2.4rem, 4.6vw, 5rem); line-height:.9; color: var(--bone); text-transform:uppercase; margin-top:5vh; }}
+.sv-side.r {{ text-align:right; }}
+.sv-side .scr {{ display:block; font-family:'Mr Dafoe',cursive; text-transform:none; font-size:.46em; color:#fff; margin:.2em .2em 0 0; transform: rotate(-5deg); }}
+.sv-side small {{ display:block; font-family:'Inter',sans-serif; font-size:.8rem; line-height:1.5; letter-spacing:.04em; text-transform:none;
+  color: rgba(241,238,231,.72); max-width:240px; margin-top:1.1rem; }}
+.sv-side.r small {{ margin-left:auto; }}
 .st-key-herosm {{ min-height: 340px; }}
 .st-key-hero::before, .st-key-herosm::before {{ content:""; position:absolute; inset:0; background-image:url("{GRAIN}");
   opacity:.16; mix-blend-mode:overlay; pointer-events:none; }}
@@ -108,15 +122,15 @@ footer {{ visibility:hidden; }}
 [class*="st-key-nav-"] button {{ background:transparent !important; border:none !important; color:var(--bone) !important; box-shadow:none !important;
   padding:.2rem .1rem !important; min-height:0 !important; }}
 [class*="st-key-nav-"] button p {{ font-size:.76rem !important; letter-spacing:.16em; text-transform:uppercase; }}
-[class*="st-key-nav-"] button:hover p, [class*="st-key-nav-"] button[data-testid="stBaseButton-primary"] p {{ color: var(--lime) !important; }}
+[class*="st-key-nav-"] button:hover p, [class*="st-key-nav-"] button[data-testid="stBaseButton-primary"] p {{ color: var(--accent) !important; }}
 .sv-hero-title {{ font-family:'Anton',sans-serif; color:var(--bone); font-size: clamp(3rem, 8vw, 7.4rem); line-height:.92;
   text-transform:uppercase; margin: 8vh 0 0 0; }}
-.sv-hero-title em {{ font-style:normal; color: var(--lime); }}
+.sv-hero-title em {{ font-style:normal; color: var(--accent); }}
 .sv-hero-sub {{ color: rgba(241,238,231,.84); max-width: 640px; font-size:1rem; margin-top:.8rem; }}
 
 /* frosted glass card (AI-Cloud concept, tinted as in the demo) */
 .st-key-glass {{ margin-top: 10vh; border-radius: 28px; padding: 8px 16px 16px;
-  background: linear-gradient(168deg, rgba(228,182,161,.32) 0%, rgba(62,58,60,.40) 40%, rgba(50,48,46,.44) 64%, rgba(154,154,74,.36) 100%);
+  background: linear-gradient(168deg, rgba(228,182,161,.32) 0%, rgba(62,58,60,.40) 40%, rgba(50,48,46,.44) 64%, rgba(176,138,108,.34) 100%);
   backdrop-filter: blur(26px) saturate(140%); -webkit-backdrop-filter: blur(26px) saturate(140%);
   border: 1px solid rgba(255,255,255,.22); box-shadow: 0 30px 90px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.28); }}
 .st-key-glass [data-testid="stVerticalBlock"] {{ gap: .55rem; }}
@@ -130,10 +144,10 @@ footer {{ visibility:hidden; }}
 .st-key-gophoto button, .st-key-gowords button {{ height:58px; border-radius:14px !important; background: rgba(250,248,244,.95) !important;
   border:none !important; }}
 .st-key-gophoto button p, .st-key-gowords button p {{ font-size:1.08rem !important; font-weight:500; color: var(--ink); }}
-.st-key-gophoto button p {{ color:#7E2F2F; }}
-.st-key-gophoto button:hover, .st-key-gowords button:hover {{ background: var(--lime) !important; }}
+.st-key-gophoto button p {{ color: var(--cognac); }}
+.st-key-gophoto button:hover, .st-key-gowords button:hover {{ background: var(--champ) !important; }}
 .sv-hello {{ text-align:center; color: rgba(255,255,255,.86); font-size:.95rem; margin: .3rem 0 .9rem; }}
-.sv-hello b {{ font-family:'Anton',sans-serif; font-weight:400; font-size:2rem; letter-spacing:.03em; display:block; color:#fff; margin-bottom:.15rem; }}
+.sv-hello b {{ font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:800; font-size:1.75rem; letter-spacing:.02em; display:block; color:#fff; margin-bottom:.15rem; }}
 [class*="st-key-gact"] button {{ height:46px; border-radius:14px !important; background: rgba(255,255,255,.12) !important;
   border: 1px solid rgba(255,255,255,.16) !important; color:#fff !important; }}
 [class*="st-key-gact"] button:hover {{ background: rgba(255,255,255,.22) !important; }}
@@ -143,9 +157,9 @@ footer {{ visibility:hidden; }}
 .st-key-glass [data-testid="stFileUploaderDropzone"] {{ background: transparent url("{CLOUD}") center 84px / 64px no-repeat !important;
   border: 1.5px dashed rgba(255,255,255,.30) !important; border-radius: 18px; min-height: 290px; padding: 182px 20px 26px !important;
   display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; }}
-.st-key-glass [data-testid="stFileUploaderDropzone"]::before {{ content: "Drop a photo here\\A to search 51,047 products"; white-space: pre;
-.st-key-glass [class*="st-key-fc-up"] [data-testid="stFileUploaderDropzone"]::before {{ content: "Drop a product photo\\A to forecast its first 12 weeks"; }}
+.st-key-glass [data-testid="stFileUploaderDropzone"]::before {{ content: "Drop a photo here\\A of a piece you love"; white-space: pre;
   position:absolute; top:22px; left:0; right:0; text-align:center; color: rgba(255,255,255,.92); font-size:1.15rem; line-height:1.55; font-weight:500; }}
+.st-key-glass [class*="st-key-fc-up"] [data-testid="stFileUploaderDropzone"]::before {{ content: "Drop a product photo\\A to forecast its first 12 weeks"; }}
 .st-key-glass [data-testid="stFileUploaderDropzone"]::after {{ content:"or"; position:absolute; top:158px; left:0; right:0; text-align:center;
   color: rgba(255,255,255,.6); font-size:.85rem; }}
 .st-key-glass [data-testid="stFileUploaderDropzoneInstructions"] {{ display:none !important; }}
@@ -156,9 +170,10 @@ footer {{ visibility:hidden; }}
 .st-key-glass [data-testid="stFileUploaderFile"] {{ display:none; }}
 
 /* write box */
-.st-key-glass textarea {{ background: linear-gradient(160deg, rgba(214,160,140,.48), rgba(170,120,110,.38)) !important; color:#fff !important;
-  font-size: 1.35rem !important; text-align:center; border-radius:16px !important; min-height:190px !important; padding-top:68px !important; }}
-.st-key-glass textarea::placeholder {{ color: rgba(255,255,255,.85); }}
+.st-key-glass textarea {{ font-family:"Inter",sans-serif !important; background: rgba(14,13,12,.30) !important; color:#fff !important; caret-color: var(--accent);
+  font-size: 1.12rem !important; line-height:1.55 !important; border-radius:16px !important; min-height:170px !important; padding:20px 22px !important; }}
+.st-key-glass textarea::placeholder {{ color: rgba(255,255,255,.58); }}
+.st-key-glass [data-baseweb="textarea"]:focus-within {{ border-color: rgba(228,182,161,.7) !important; }}
 .st-key-glass [data-baseweb="textarea"] {{ background: transparent !important; border:1px solid rgba(255,255,255,.18) !important; border-radius:16px !important; }}
 .st-key-glass [data-testid="stTextArea"] label, .st-key-glass [data-testid="stTextInput"] label {{ display:none; }}
 .st-key-glass input {{ background: rgba(255,255,255,.10) !important; color:#fff !important; }}
@@ -173,21 +188,21 @@ footer {{ visibility:hidden; }}
   align-items:center; justify-content:center; margin-bottom:.4rem; }}
 .sv-scan img {{ max-height:210px; max-width:100%; object-fit:contain; }}
 .sv-scan::after {{ content:""; position:absolute; left:0; right:0; height:70px; top:-70px;
-  background: linear-gradient(180deg, rgba(216,243,106,0), rgba(216,243,106,.42) 85%, rgba(255,255,255,.95));
+  background: linear-gradient(180deg, rgba(228,182,161,0), rgba(228,182,161,.45) 85%, rgba(255,255,255,.95));
   animation: scan 1.6s cubic-bezier(.4,0,.2,1) infinite; }}
 @keyframes scan {{ 0% {{ top:-70px; }} 100% {{ top:100%; }} }}
 .sv-row {{ display:flex; align-items:center; gap:.8rem; padding:.5rem .2rem; border-bottom:1px solid rgba(255,255,255,.08); color:#fff; }}
 .sv-row:last-child {{ border-bottom:none; }}
-.sv-ico {{ width:34px; height:34px; border-radius:9px; background: linear-gradient(160deg,#6FD3F7,#2A9FD6); flex:none;
+.sv-ico {{ width:34px; height:34px; border-radius:9px; background: linear-gradient(160deg,#F3E3D6,#C99A80); flex:none;
   display:flex; align-items:center; justify-content:center; font-size:.95rem; }}
 .sv-row .t {{ flex:1; font-size:.92rem; line-height:1.2; }}
 .sv-row .t small {{ display:block; color: rgba(255,255,255,.55); font-size:.74rem; margin-top:.15rem; }}
 .sv-pill {{ --p:0; width:54px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:.78rem;
   color:#fff; border:1.5px solid rgba(255,255,255,.3); background: linear-gradient(90deg, rgba(255,255,255,.24) calc(var(--p) * 1%), rgba(255,255,255,.05) 0); }}
-.sv-pill.run {{ border-color: var(--lime); }}
+.sv-pill.run {{ border-color: var(--accent); }}
 .sv-pill.ok {{ border-color: rgba(255,255,255,.8); }}
 .sv-progpanel {{ margin-top:16px; border-radius:22px; padding:16px 20px; color:#fff;
-  background: linear-gradient(168deg, rgba(110,104,70,.58), rgba(66,62,50,.58)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  background: linear-gradient(168deg, rgba(120,96,80,.58), rgba(58,52,48,.62)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border:1px solid rgba(255,255,255,.18); }}
 .sv-prog-top, .sv-prog-bot {{ display:flex; justify-content:space-between; font-size:.88rem; }}
 .sv-prog-bot {{ color: rgba(255,255,255,.65); font-size:.8rem; }}
@@ -203,28 +218,28 @@ footer {{ visibility:hidden; }}
 /* editorial sections (Auralee) */
 .st-key-results, .st-key-section {{ padding: 26px 56px 70px; background: var(--ink); }}
 .sv-marquee {{ overflow:hidden; white-space:nowrap; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:.7rem 0; margin: 0 -56px 2rem; }}
-.sv-marquee span {{ display:inline-block; font-family:'Anton',sans-serif; font-size:2.1rem; color: var(--bone); letter-spacing:.04em;
+.sv-marquee span {{ display:inline-block; font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:700; font-size:1.55rem; color: var(--bone); letter-spacing:.08em; text-transform:uppercase;
   animation: marquee 34s linear infinite; padding-right:2rem; }}
-.sv-marquee span b {{ color: var(--lime); font-weight:400; }}
+.sv-marquee span b {{ color: var(--accent); font-weight:400; }}
 @keyframes marquee {{ from {{ transform: translateX(0); }} to {{ transform: translateX(-100%); }} }}
 .sv-paper {{ display:inline-block; background:#EFEBE3; color: var(--ink); font-weight:600; font-size:.95rem; padding:.35rem 1rem .4rem; margin:.4rem 0 .9rem;
   transform: rotate(-1.6deg); box-shadow: 0 6px 18px rgba(0,0,0,.35);
   clip-path: polygon(0 8%, 6% 0, 14% 6%, 23% 1%, 33% 7%, 44% 0, 55% 6%, 66% 1%, 77% 7%, 88% 0, 100% 6%, 98% 52%, 100% 94%, 90% 100%, 79% 94%, 68% 100%, 57% 95%, 45% 100%, 33% 94%, 22% 100%, 11% 95%, 0 100%, 2% 50%); }}
-.sv-display {{ font-family:'Anton',sans-serif; text-transform:uppercase; color: var(--bone); font-size: clamp(2.4rem, 5vw, 4.4rem); line-height:.95; margin:.2rem 0 .6rem; }}
-.sv-display em {{ font-style:normal; color: var(--lime); }}
+.sv-display {{ font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:800; letter-spacing:-.01em; text-transform:uppercase; color: var(--bone); font-size: clamp(2rem, 3.6vw, 3.4rem); line-height:1.02; margin:.2rem 0 .6rem; }}
+.sv-display em {{ font-style:normal; color: var(--accent); }}
 .sv-note {{ color: var(--muted); font-size:.86rem; max-width:780px; margin-bottom:1rem; }}
 .sv-chip {{ display:inline-block; padding:.22rem .7rem; margin:0 .35rem .4rem 0; border-radius:999px; border:1px solid var(--line);
   color: var(--bone); font-size:.78rem; background: var(--panel); }}
-.sv-chip.same {{ border-color:#5D6B2A; color: var(--lime); }}
-.sv-chip.similar {{ border-color:#6F5546; color: var(--rose); }}
+.sv-chip.same {{ border-color:#8A6252; color: var(--accent); }}
+.sv-chip.similar {{ border-color:#5A544C; color: var(--champ); }}
 .sv-chip.different {{ color: var(--muted); }}
-.sv-chip.lime {{ background: var(--lime); color: var(--ink); border-color: var(--lime); font-weight:600; }}
+.sv-chip.accent {{ background: var(--accent); color: var(--ink); border-color: var(--accent); font-weight:600; }}
 
 /* product cards (Auralee) */
 .av-card {{ background: var(--panel); border:1px solid var(--line); }}
 .av-top {{ padding:12px 14px 10px; min-height:84px; }}
-.av-brand {{ font-family:'Anton',sans-serif; color: var(--lime); font-size:.95rem; letter-spacing:.03em; text-transform:uppercase; min-height:1.15rem; }}
-.av-title {{ font-family:'Anton',sans-serif; color: var(--bone); font-size:1.05rem; line-height:1.08; text-transform:uppercase;
+.av-brand {{ font-family:'Inter',sans-serif; font-weight:600; color: var(--accent); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; min-height:1.15rem; }}
+.av-title {{ font-family:'Archivo',sans-serif; font-weight:600; color: var(--bone); font-size:.98rem; line-height:1.25; margin-top:.25rem;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
 .av-img {{ background:#ECE9E3; height:290px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }}
 .av-img img {{ max-height:272px; max-width:90%; object-fit:contain; filter: grayscale(1) contrast(1.04); transition: filter .45s ease, transform .45s ease; }}
@@ -238,54 +253,55 @@ footer {{ visibility:hidden; }}
 [class*="st-key-view-"] button {{ background: transparent !important; border:1px solid var(--line) !important; border-top:none !important;
   border-radius:0 !important; margin-top:-1rem; }}
 [class*="st-key-view-"] button p {{ font-size:.72rem !important; letter-spacing:.18em; text-transform:uppercase; color: var(--bone); }}
-[class*="st-key-view-"] button:hover {{ border-color: var(--lime) !important; }}
-[class*="st-key-view-"] button:hover p {{ color: var(--lime); }}
+[class*="st-key-view-"] button:hover {{ border-color: var(--accent) !important; }}
+[class*="st-key-view-"] button:hover p {{ color: var(--accent); }}
 
 /* best match */
-.bm {{ background:#EFEBE3; color: var(--ink); padding:26px 28px; min-height: 452px; }}
+.bm {{ background: var(--bone); color: var(--ink); padding:26px 28px; min-height: 452px; }}
 .st-key-gbody [data-testid="stElementContainer"]:has([data-testid="stImage"]) {{ width:100% !important; display:flex; justify-content:center; }}
 .bm .eb {{ font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:#7A746B; }}
-.bm h3 {{ font-family:'Anton',sans-serif; font-weight:400; text-transform:uppercase; font-size:2.3rem; line-height:1; margin:.35rem 0 .9rem; color: var(--ink); }}
+.bm h3 {{ font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:800; text-transform:uppercase; font-size:1.45rem; line-height:1.1; overflow-wrap:normal; word-break:keep-all; margin:.35rem 0 .9rem; color: var(--ink); }}
 .bm .bar {{ height:10px; background:#DCD5C8; }}
 .bm .bar > div {{ height:100%; }}
 .bm .row {{ display:flex; justify-content:space-between; margin:.55rem 0 .9rem; font-size:.9rem; }}
 .bm p {{ color:#5A544C; font-size:.84rem; line-height:1.55; }}
 
 /* product detail (Allure) */
-.st-key-detail {{ background:#F4F1EA; }}
-.dt-img {{ background:#E9E5DD; height:620px; display:flex; align-items:center; justify-content:center; }}
+.st-key-detail {{ background: var(--bone); padding-bottom:26px; }}
+.dt-img {{ background:#E6E0D5; height:620px; display:flex; align-items:center; justify-content:center; }}
 .dt-img img {{ max-height:570px; max-width:86%; object-fit:contain; }}
-.dt-thumbs {{ display:flex; gap:10px; padding:12px 26px 22px; background:#E9E5DD; }}
+.dt-thumbs {{ display:flex; gap:10px; padding:12px 26px 22px; background:#E6E0D5; }}
 .dt-thumbs div {{ flex:1; background:#fff; height:110px; display:flex; align-items:center; justify-content:center; border:1px solid #DDD6CA; position:relative; }}
 .dt-thumbs img {{ max-height:96px; max-width:92%; object-fit:contain; }}
 .dt-thumbs span {{ position:absolute; bottom:3px; left:6px; font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:#7A746B; }}
 .dt-panel {{ background:#fff; color: var(--ink); padding:34px 38px 28px; margin:26px 26px 0 0; }}
 .dt-crumb {{ font-size:.76rem; letter-spacing:.06em; text-transform:uppercase; color:#3A3632; }}
 .dt-crumb b {{ font-weight:400; color:#A39E95; margin:0 .55rem; }}
-.dt-title {{ font-weight:600; text-transform:uppercase; letter-spacing:-.02em; font-size:2.3rem; line-height:1.04; margin:1.1rem 0 .6rem; color: var(--ink); }}
-.dt-price {{ font-size:2rem; color:#B5745A; font-weight:500; margin-bottom:1.4rem; }}
+.dt-title {{ font-family:'Archivo',sans-serif; font-stretch:108%; font-weight:700; text-transform:uppercase; letter-spacing:-.02em; font-size:2.3rem; line-height:1.04; margin:1.1rem 0 .6rem; color: var(--ink); }}
+.dt-price {{ font-size:1.7rem; color: var(--cognac); font-weight:500; margin-bottom:1.4rem; }}
 .dt-grid {{ display:grid; grid-template-columns: 34% 66%; row-gap:1.05rem; font-size:.84rem; }}
 .dt-grid .k {{ color:#A39E95; text-transform:uppercase; letter-spacing:.06em; font-size:.76rem; padding-top:.15rem; }}
 .dt-grid .v {{ color: var(--ink); text-transform:uppercase; }}
-.dt-grid .sz {{ display:inline-block; padding:.12rem .5rem; background:#C8916F; color:#fff; }}
+.dt-grid .sz {{ display:inline-block; padding:.12rem .55rem; border:1px solid var(--ink); color: var(--ink); font-size:.74rem; letter-spacing:.06em; }}
 .dt-grid ul {{ margin:0; padding-left:1rem; }}
-.dt-grid li::marker {{ color:#C8916F; }}
+.dt-grid li::marker {{ color: var(--cognac); }}
 .dt-cta {{ display:block; background: var(--ink); color: var(--bone) !important; text-align:center; padding:1.05rem; margin:0 26px 0 0;
   letter-spacing:.2em; text-transform:uppercase; font-size:.8rem; text-decoration:none !important; }}
-.dt-cta:hover {{ background: var(--lime); color: var(--ink) !important; }}
+.dt-cta:hover {{ background: var(--cognac); color:#fff !important; }}
 .st-key-dback button {{ background: transparent !important; border:1px solid #CFC7B8 !important; border-radius:999px !important; margin-top:.8rem; }}
 .st-key-dback button p, .st-key-heatb button p {{ color: var(--ink) !important; }}
-.st-key-heatb button {{ background:#F4F1EA !important; border:1px solid #CFC7B8 !important; }}
+.st-key-heatb button {{ background: var(--bone) !important; border:1px solid #CFC7B8 !important; }}
+.st-key-heatb button:hover, .st-key-dback button:hover {{ border-color: var(--cognac) !important; }}
 .st-key-detail [data-testid="stExpander"] {{ background:#fff; border:1px solid #E1DACC; margin-right:26px; }}
 .st-key-detail [data-testid="stExpander"] summary p, .st-key-detail [data-testid="stCaptionContainer"] p {{ color: var(--ink) !important; }}
 .st-key-detail [data-testid="stExpander"] summary {{ background:#fff !important; color: var(--ink) !important; }}
 .st-key-detail [data-testid="stExpander"] summary svg {{ fill: var(--ink); color: var(--ink); }}
-.st-key-detail .sv-chip {{ background:#F4F1EA; color: var(--ink); border-color:#DDD6CA; }}
-.st-key-detail .sv-chip.same {{ background:#EEF6D2; border-color:#C9DD7A; color:#3D4A12; }}
-.st-key-detail .sv-chip.similar {{ background:#F7E7DF; border-color:#E9C9B8; color:#7B4A35; }}
+.st-key-detail .sv-chip {{ background: var(--bone); color:#8C857B; border-color:#DDD6CA; }}
+.st-key-detail .sv-chip.same {{ background: var(--ink); border-color: var(--ink); color: var(--bone); }}
+.st-key-detail .sv-chip.similar {{ background:#F3E4DA; border-color:#E2C4B2; color: var(--cognac); }}
 
 /* metrics */
-[data-testid="stMetricValue"] {{ font-family:'Anton',sans-serif; font-size:2.3rem; color: var(--bone); }}
+[data-testid="stMetricValue"] {{ font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:800; font-size:2rem; color: var(--bone); }}
 [data-testid="stMetricLabel"] p {{ color: var(--muted) !important; letter-spacing:.06em; text-transform:uppercase; font-size:.72rem !important; }}
 </style>"""
 
@@ -406,8 +422,9 @@ def price_text(row) -> str:
 
 
 def go(view: str) -> None:
-    ss.view, ss.detail = view, None
-    st.rerun()
+    """Button callback: switch page. Callbacks run before the rerun, so a click costs one run, not two."""
+    reset_photo()
+    ss.view, ss.detail = ("home" if view == "search" else view), None
 
 
 def item_preds(item_id):
@@ -449,7 +466,6 @@ def card(row, tags, right: str) -> str:
 
 def open_detail(item_id: str, origin: str) -> None:
     ss.detail, ss.detail_from = item_id, origin
-    st.rerun()
 
 
 def grid(results: pd.DataFrame, prefix: str, query_attrs=None, show_similarity=True) -> None:
@@ -462,8 +478,8 @@ def grid(results: pd.DataFrame, prefix: str, query_attrs=None, show_similarity=T
             sim = f"{row.similarity:.2f} match" if show_similarity and row.similarity == row.similarity else ""
             right = " · ".join(t for t in [price_text(row), sim] if t)
             st.markdown(card(row, card_tags(row, query_attrs), right), unsafe_allow_html=True)
-            if st.button("[ View ]", key=f"view-{prefix}-{row.item_id}", width="stretch"):
-                open_detail(row.item_id, prefix)
+            st.button("[ View ]", key=f"view-{prefix}-{row.item_id}", width="stretch",
+                      on_click=open_detail, args=(row.item_id, prefix))
 
 
 # --- sidebar ------------------------------------------------------------------------------------
@@ -480,8 +496,6 @@ def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
         "Match colour", value=engine.has_colour, disabled=not engine.has_colour,
         help="Re-ranks photo results toward the photo's colours: colour agreement 50.8% → 54.8% on held-out garments.")
     st.sidebar.caption(f"{len(cat):,} products, 2019–2026 · search model: Marqo-FashionSigLIP")
-    with st.sidebar.expander("About & credits"):
-        st.markdown(ABOUT)
     preowned = {"Any": None, "New": False, "Pre-owned": True}[condition]
     return Filters(sources, categories, genders, preowned), k, match_colour
 
@@ -496,9 +510,8 @@ def nav_bar() -> None:
     current = "search" if ss.view in ("home", "photo", "words") else ss.view
     for col, (view, label) in zip(cols, NAV, strict=True):
         with col, st.container(key=f"nav-{view}"):
-            if st.button(label, key=f"navb-{view}", type="primary" if view == current and not ss.detail else "secondary"):
-                reset_photo()
-                go("home" if view == "search" else view)
+            st.button(label, key=f"navb-{view}", type="primary" if view == current and not ss.detail else "secondary",
+                      on_click=go, args=(view,))
 
 
 def reset_photo() -> None:
@@ -509,27 +522,45 @@ def reset_photo() -> None:
 
 def glass_header(title_html: str, back: bool = True, close: bool = True) -> None:
     a, b, c = st.columns([1, 6, 1], vertical_alignment="center")
-    with a:
-        if back and st.button("‹", key="gback"):
-            reset_photo()
-            go("home")
+    if back:
+        a.button("‹", key="gback", on_click=go, args=("search",))
     b.markdown(f'<div class="sv-gtitle">{title_html}</div>', unsafe_allow_html=True)
-    with c:
-        if close and st.button("✕", key="gclose"):
-            reset_photo()
-            go("home")
+    if close:
+        c.button("✕", key="gclose", on_click=go, args=("search",))
     st.markdown('<div class="sv-gline"></div>', unsafe_allow_html=True)
 
 
 TITLE = "<span>Silhouette</span> Vision"
+MAST = '<div class="sv-mast"><div class="big">Silhouette</div><div class="scr">vision</div></div>'
+
+
+def side(left: tuple[str, str], right: tuple[str, str, str]) -> tuple[str, str]:
+    """Look-book text either side of the card: (title, note) left, (title, script, note) right."""
+    return (f'<div class="sv-side">{left[0]}<small>{left[1]}</small></div>',
+            f'<div class="sv-side r">{right[0]}<span class="scr">{right[1]}</span><small>{right[2]}</small></div>')
+
+
+SEARCH_SIDE = side(("Your<br>edit", "Look-alikes ranked by how close they really are, and why they match."),
+                   ("Season<br>2019–26", "New &amp; pre-owned", "Designer, high-street and second-hand pieces from 2019 to 2026."))
 
 
 # --- photo analysis: the scan, with real progress -----------------------------------------------
-STEPS = [("🔎", "Detecting garments", "finding the items in your photo"),
-         ("🧵", "Reading the look", "type, colour, pattern, sleeves, neckline"),
-         ("👜", "Recognising luxury models", "161 iconic models, by name"),
-         ("✦", "Searching 51,047 products", "visual similarity, colour-aware"),
-         ("◎", "Checking for an exact match", "calibrated likelihood")]
+def icon(paths: str) -> str:
+    return ('<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#141312" stroke-width="1.7" '
+            f'stroke-linecap="round" stroke-linejoin="round">{paths}</svg>')
+
+
+STEPS = [(icon('<path d="M4 8V5h3M17 4h3v3M20 16v3h-3M7 20H4v-3"/><circle cx="12" cy="12" r="3"/>'),
+          "Detecting garments", "finding the items in your photo"),
+         (icon('<path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/>'),
+          "Reading the look", "type, colour, pattern, sleeves, neckline"),
+         (icon('<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M12 21 8 9l4-6 4 6z"/>'),
+          "Recognising luxury models", "161 iconic models, by name"),
+         (icon('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>'
+               '<rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>'),
+          "Searching the catalog", "visual similarity, colour-aware"),
+         (icon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>'),
+          "Checking for an exact match", "calibrated likelihood")]
 
 
 def scan_rows(done: int, running: int | None) -> str:
@@ -552,7 +583,7 @@ def progress_panel(done: int, elapsed: float, finished: float | None = None) -> 
         right = f"~{max(1, round(elapsed / max(done, 1) * (n - done)))} sec left" if done else "starting…"
     return (f'<div class="sv-progpanel"><div class="sv-prog-top"><span>{head}</span><span>{pct}%</span></div>'
             f'<div class="sv-bar"><div style="width:{pct}%"></div></div>'
-            f'<div class="sv-prog-bot"><span>{done} of {n} steps · 51,047 products</span><span>{right}</span></div></div>')
+            f'<div class="sv-prog-bot"><span>{done} of {n} steps</span><span>{right}</span></div></div>')
 
 
 def analyse(image: Image.Image, crops: list, choice: int, engine: SearchEngine) -> dict:
@@ -607,24 +638,26 @@ def scan(upload, engine: SearchEngine, body, prog) -> None:
 # --- search page --------------------------------------------------------------------------------
 def search_page(engine, filters, k, match_colour) -> None:
     view = ss.view
-    if "pending_q" in ss:  # an example chip was clicked: fill the box before it is drawn
-        ss.words_q = ss.pop("pending_q")
     has_results = (view == "photo" and ss.get("analysis")) or (view == "words" and ss.get("words_q", "").strip())
     with st.container(key="heroc" if has_results else "hero"):
         nav_bar()
-        with st.columns([1, 1.35, 1])[1]:
+        if not has_results:
+            st.markdown(MAST, unsafe_allow_html=True)
+        left, mid, right = st.columns([1, 1.35, 1], gap="large")
+        if has_results:
+            left.markdown(SEARCH_SIDE[0], unsafe_allow_html=True)
+            right.markdown(SEARCH_SIDE[1], unsafe_allow_html=True)
+        with mid:
             glass = st.container(key="glass")
             prog = st.empty()  # the progress panel sits under the card
             with glass:
                 if view == "home":
                     glass_header(TITLE, back=False, close=False)
                     with st.container(key="gbody"):
-                        st.markdown('<div class="sv-hello"><b>FIND THE LOOK</b>Search 51,047 products from 2019–2026 '
-                                    'by photo or by words</div>', unsafe_allow_html=True)
-                        if st.button("Search by photo", key="gophoto", width="stretch"):
-                            go("photo")
-                        if st.button("Search by words", key="gowords", width="stretch"):
-                            go("words")
+                        st.markdown('<div class="sv-hello"><b>FIND THE LOOK</b>Show us a photo or describe a piece: '
+                                    'we find it, name it and say how sure we are.</div>', unsafe_allow_html=True)
+                        st.button("Search by photo", key="gophoto", width="stretch", on_click=go, args=("photo",))
+                        st.button("Search by words", key="gowords", width="stretch", on_click=go, args=("words",))
                 elif view == "photo":
                     photo_glass(engine, prog)
                 else:
@@ -664,30 +697,25 @@ def photo_glass(engine, prog) -> None:
         st.text_input("Refine", key="refine", placeholder="Refine with words: in red, leather, cropped…")
     c1, c2 = st.columns(2)
     with c1, st.container(key="gact-cancel"):
-        if st.button("Cancel", key="gact-cancel-b", width="stretch"):
-            reset_photo()
-            go("home")
+        st.button("Cancel", key="gact-cancel-b", width="stretch", on_click=go, args=("search",))
     with c2, st.container(key="gact-new"):
-        if st.button("New photo", key="gact-new-b", width="stretch"):
-            reset_photo()
-            st.rerun()
+        st.button("New photo", key="gact-new-b", width="stretch", on_click=reset_photo)
 
 
 def words_glass() -> None:
     glass_header(TITLE + " · words")
     with st.container(key="gbody"):
-        st.text_area("Describe it", key="words_q", placeholder="write here…", height=190)
+        st.text_area("Describe it", key="words_q", height=170,
+                     placeholder="Describe the piece you have in mind…\n\ne.g. a cream cable-knit cardigan with gold buttons")
         with st.container(key="exrow", horizontal=True, gap="small"):
             for i, ex in enumerate(EXAMPLES):
-                if st.button(ex, key=f"exb-{i}"):
-                    ss.pending_q = ex
-                    st.rerun()
+                st.button(ex, key=f"exb-{i}", on_click=ss.__setitem__, args=("words_q", ex))
     with st.container(key="gact-search"):
         st.button("Search  ↵", key="gact-search-b", width="stretch")
 
 
 def marquee(words: list[str]) -> str:
-    text = "".join(f"{w} <b>·</b> " for w in words) * 8
+    text = "".join(f"{esc(w)} <b>·</b> " for w in words) * 8
     return f'<div class="sv-marquee"><span>{text}</span><span>{text}</span></div>'
 
 
@@ -697,7 +725,11 @@ def photo_results(engine, filters, k, match_colour) -> None:
     if ss.get("refine"):
         query = engine.combine(query, engine.text_vector(ss.refine), 0.3)
     with st.container(key="results"):
-        st.markdown(marquee(["FIND", "MATCH", "UNDERSTAND"]), unsafe_allow_html=True)
+        seen = [x["value"] for x in a["attrs"] if x["attribute"] in ("article_type", "colour", "pattern")]
+        named = a.get("named")
+        if named and named[1] >= 0.5:
+            seen.append(named[0].label)
+        st.markdown(marquee(["Your edit", *seen, f"{k} look-alikes"]), unsafe_allow_html=True)
         left, right = st.columns([5, 7], gap="large")
         with left:
             st.markdown('<span class="sv-paper">what we see</span>', unsafe_allow_html=True)
@@ -731,7 +763,7 @@ def named_panel(engine, a) -> None:
     stock = f"{len(rows)} listing{'s' if len(rows) != 1 else ''} in the catalog" if len(rows) else "Not in our catalog"
     st.markdown(f'<span class="sv-paper">{"recognised model" if prob >= 0.8 else "probably"}</span>'
                 f'<div class="sv-display" style="font-size:2.6rem">{esc(model.label)}</div>'
-                f'{chips([f"model confidence {prob:.0%}"], "lime")}'
+                f'{chips([f"model confidence {prob:.0%}"], "accent")}'
                 f'<div class="sv-note">{esc(stock)} · <a href="{web}" target="_blank" style="color:var(--rose)">find it online ↗</a></div>',
                 unsafe_allow_html=True)
     if len(rows):
@@ -753,8 +785,7 @@ def best_match_panel(engine, query, filters, a) -> None:
     c1, c2 = st.columns([1, 1.25], gap="small")
     with c1:
         st.markdown(card(row, card_tags(row, a["attrs"]), f"{row.similarity:.2f} match"), unsafe_allow_html=True)
-        if st.button("[ View ]", key=f"view-best-{row.item_id}", width="stretch"):
-            open_detail(row.item_id, "img")
+        st.button("[ View ]", key=f"view-best-{row.item_id}", width="stretch", on_click=open_detail, args=(row.item_id, "img"))
     with c2:
         st.markdown(f'<div class="bm"><div class="eb">best match</div><h3>{esc(tier)}</h3>'
                     f'<div class="bar"><div style="width:{prob:.0%};background:{colour}"></div></div>'
@@ -768,7 +799,7 @@ def best_match_panel(engine, query, filters, a) -> None:
 def words_results(engine, filters, k) -> None:
     text = ss.words_q.strip()
     with st.container(key="results"):
-        st.markdown(marquee(["DESCRIBE", "FIND", "COMPARE"]), unsafe_allow_html=True)
+        st.markdown(marquee(["Your edit", f"“{text}”", f"{k} pieces", "by look and by words"]), unsafe_allow_html=True)
         st.markdown(f'<span class="sv-paper">results for</span><div class="sv-display">“{esc(text)}”</div>'
                     '<div class="sv-note">Matched on look (image embedding) and words (brand, title, type) together.</div>',
                     unsafe_allow_html=True)
@@ -848,9 +879,7 @@ def detail_page(engine, filters, k, match_colour) -> None:
                         release_memory()
                         st.rerun()
                     st.caption("Heatmaps appear in the thumbnail strip: brighter = hiding that region lowers the similarity most.")
-            if st.button("‹ Back to results", key="dback"):
-                ss.detail = None
-                st.rerun()
+            st.button("‹ Back to results", key="dback", on_click=ss.__setitem__, args=("detail", None))
     with st.container(key="results"):
         st.markdown('<div class="sv-display">More <em>like this</em></div>', unsafe_allow_html=True)
         colour = engine.item_colour(item_id) if match_colour else None
@@ -864,7 +893,7 @@ def page_hero(title: str, sub: str) -> None:
         st.markdown(f'<div class="sv-hero-title">{title}</div><div class="sv-hero-sub">{sub}</div>', unsafe_allow_html=True)
 
 
-STYLE_COLOURS = ["#D8F36A", "#E4B6A1", "#F1EEE7", "#9A9A4A", "#C8916F", "#8FB3C9", "#B7A6D9", "#E8C63A",
+STYLE_COLOURS = ["#E4B6A1", "#F1EEE7", "#C9A27E", "#9A9A4A", "#C8916F", "#8FB3C9", "#B7A6D9", "#E8C63A",
                  "#6FA37A", "#D87C6B", "#A39E95", "#5E8C8A", "#E59BB3", "#7E7AB8", "#C9C9C9", "#B98A5E"]
 
 
@@ -919,7 +948,15 @@ def forecast_page(engine) -> None:
     photo = ss.get("fc_photo")
     with st.container(key="heroc" if photo else "hero"):
         nav_bar()
-        with st.columns([1, 1.35, 1])[1], st.container(key="glass"):
+        if photo is None:
+            st.markdown(MAST, unsafe_allow_html=True)
+        left, mid, right = st.columns([1, 1.35, 1], gap="large")
+        if photo is not None:
+            l_, r_ = side(("New<br>launch", "No sales history yet: the model borrows from past launches that look like it."),
+                          ("First<br>12 weeks", "Units, by week", "Learned from 5,355 launches of an Italian womenswear brand."))
+            left.markdown(l_, unsafe_allow_html=True)
+            right.markdown(r_, unsafe_allow_html=True)
+        with mid, st.container(key="glass"):
             glass_header(TITLE + " · forecast", close=False)
             with st.container(key="gbody"):
                 if photo is None:
@@ -928,14 +965,13 @@ def forecast_page(engine) -> None:
                         ss.fc_photo, ss.fc_n = new.getvalue(), ss.get("fc_n", 0) + 1
                         st.rerun()
                 else:
-                    st.image(photo, width=170)
+                    st.markdown(f'<div style="text-align:center"><img src="{pil_uri(load_rgb(io.BytesIO(photo)), 400)}" '
+                                'style="max-height:170px;border-radius:12px"/></div>', unsafe_allow_html=True)
                 st.markdown('<div class="sv-hello" style="margin:.7rem 0 0">How many units would a new product sell '
                             'in its first 12 weeks?</div>', unsafe_allow_html=True)
             if photo is not None:
                 with st.container(key="gact-fcnew"):
-                    if st.button("New photo", key="gact-fcnew-b", width="stretch"):
-                        ss.pop("fc_photo")
-                        st.rerun()
+                    st.button("New photo", key="gact-fcnew-b", width="stretch", on_click=ss.pop, args=("fc_photo",))
     upload = io.BytesIO(photo) if photo else None
     with st.container(key="section"):
         st.markdown('<div class="sv-display">New product <em>forecast</em></div><div class="sv-note">Learned from 5,355 '
@@ -975,7 +1011,7 @@ def forecast_page(engine) -> None:
                       help="On 1,900 unseen 2019 products, actual sales fell in this range for 80% of them.")
             m3.metric("Per store", f"{r['per_store']:.1f} units")
             weeks = pd.DataFrame({"Week": np.arange(1, 13), "Units": r["weekly"]})
-            fig = px.bar(weeks, x="Week", y="Units", height=230, template="plotly_dark", color_discrete_sequence=["#D8F36A"])
+            fig = px.bar(weeks, x="Week", y="Units", height=230, template="plotly_dark", color_discrete_sequence=["#E4B6A1"])
             fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#1E1D1B", margin={"l": 0, "r": 0, "t": 10, "b": 0})
             st.plotly_chart(fig, width="stretch")
             if forecaster.nearest_similarity(vec) < b["min_similarity"]:
