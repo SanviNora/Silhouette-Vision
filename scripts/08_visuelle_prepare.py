@@ -5,7 +5,7 @@ Outputs
                                             date, store, units sold in weeks 1-12
   data/processed/visuelle_products.parquet  one row per product (tags, mean price, n_stores,
                                             first release, total units)
-  artifacts/embeddings/visuelle/marqo_fashion_siglip.npy  row-aligned with visuelle_products
+  artifacts/embeddings/visuelle/<PHOTO_MODEL>.npy  row-aligned with visuelle_products
 
 `restock` (stock actually delivered during the season) and the weekly discounts are kept out of
 the modelling tables' features: neither is known when a new product is being planned.
@@ -15,7 +15,7 @@ Usage: python scripts/08_visuelle_prepare.py
 import numpy as np
 import pandas as pd
 
-from silhouette_vision.config import ROOT, path
+from silhouette_vision.config import PHOTO_MODEL, ROOT, path
 from silhouette_vision.encoders import load_encoder
 from silhouette_vision.images import load_rgb
 
@@ -61,14 +61,14 @@ def main():
     rows.to_parquet(out / "visuelle_rows.parquet", index=False)
     products.to_parquet(out / "visuelle_products.parquet", index=False)
 
-    encoder = load_encoder("marqo_fashion_siglip")
+    encoder = load_encoder(PHOTO_MODEL)  # the app embeds uploaded photos with the same model
     vecs = []
     for i in range(0, len(products), 64):
         batch = [load_visuelle(p) for p in products.image_path.iloc[i:i + 64]]
         vecs.append(encoder.embed_images(batch))
     emb_dir = path("embeddings") / "visuelle"
     emb_dir.mkdir(parents=True, exist_ok=True)
-    np.save(emb_dir / "marqo_fashion_siglip.npy", np.vstack(vecs).astype(np.float32))
+    np.save(emb_dir / f"{PHOTO_MODEL}.npy", np.vstack(vecs).astype(np.float32))
     print(f"saved {len(products):,} image embeddings")
 
 

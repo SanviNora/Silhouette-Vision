@@ -4,8 +4,11 @@ Exact search on L2-normalized embeddings: one matrix-vector product gives the co
 every item. At 51k items this takes a few milliseconds in NumPy, so no ANN index (FAISS, HNSW) is
 needed; FAISS was also dropped because its bundled OpenMP runtime clashes with PyTorch's.
 Filters are applied before ranking, so a filtered query still returns k results.
-The Marqo + GR-Lite blend ("Precise match", +4.7 R@1 on LookBench) was removed from the app: it
-needs a second 1.2 GB model that does not fit the free host (docs/phase2_results.md).
+Two embedding spaces, one model in memory: photos are matched in MODA's space (config.PHOTO_MODEL,
+LookBench exact R@1 56.5 vs 51.6 for Marqo), text in Marqo's (config.TEXT_MODEL). MODA kept
+Marqo's text tower unchanged, so the loaded model embeds both photos and text; text queries are
+compared with the Marqo catalog embeddings, where images and text are still aligned
+(docs/phase2_results.md, October 2026).
 """
 
 from dataclasses import dataclass, field
@@ -16,7 +19,7 @@ from PIL import Image
 
 from silhouette_vision import colour
 from silhouette_vision.catalog import load_catalog
-from silhouette_vision.config import path
+from silhouette_vision.config import PHOTO_MODEL, TEXT_MODEL, path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.encoders import load_encoder
 
@@ -53,12 +56,14 @@ def top_k(scores: np.ndarray, k: int, mask: np.ndarray | None = None) -> np.ndar
 
 
 class SearchEngine:
-    def __init__(self, model: str = "marqo_fashion_siglip", device: str | None = None):
+    def __init__(self, photo_model: str = PHOTO_MODEL, text_model: str = TEXT_MODEL, device: str | None = None):
         self.catalog = load_catalog()
         # Held at 16 bit (as stored) and scored in 32-bit chunks: ~80 MB less on the 2.7 GB free
         # host, identical rankings (16-bit storage measured lossless on LookBench, Phase 2).
-        self.embeddings = load_embeddings(model, self.catalog).astype(np.float16)
-        self.encoder = load_encoder(model, device=device)
+        self.embeddings = load_embeddings(photo_model, self.catalog, np.float16)
+        self.text_embeddings = (self.embeddings if text_model == photo_model
+                                else load_embeddings(text_model, self.catalog, np.float16))
+        self.encoder = load_encoder(photo_model, device=device)
         self.colour_hists = self._load_colour_hists()
 
     def _load_colour_hists(self) -> np.ndarray | None:
@@ -85,9 +90,12 @@ class SearchEngine:
     def item_vector(self, item_id: str) -> np.ndarray:
         return self.embeddings[self._row(item_id)].astype(np.float32)
 
-    def similarities(self, query: np.ndarray, rows: np.ndarray | None = None, chunk: int = 8192) -> np.ndarray:
-        """Cosine of `query` to every product (or to `rows`), computed in 32-bit chunks."""
-        emb = self.embeddings if rows is None else self.embeddings[rows]
+    def similarities(self, query: np.ndarray, rows: np.ndarray | None = None, chunk: int = 8192,
+                     space: str = "photo") -> np.ndarray:
+        """Cosine of `query` to every product (or to `rows`), computed in 32-bit chunks.
+        space="text" scores against the text-aligned catalog embeddings (for text queries)."""
+        emb = self.embeddings if space == "photo" else getattr(self, "text_embeddings", self.embeddings)
+        emb = emb if rows is None else emb[rows]
         q = query.astype(np.float32)
         return np.concatenate([emb[i:i + chunk].astype(np.float32) @ q for i in range(0, len(emb), chunk)])
 
@@ -125,17 +133,22 @@ class SearchEngine:
     def search(self, query: np.ndarray, k: int = 12, filters: Filters | None = None,
                exclude: list[str] | None = None, query_colour: np.ndarray | None = None,
                colour_weight: float = colour.DEFAULT_WEIGHT, shortlist: int = 50,
-               keywords: str | None = None) -> pd.DataFrame:
-        """Top-k by cosine similarity (plus keyword match when `keywords` is given, for text
-        search; the "similarity" column stays the cosine). With `query_colour`, the top
-        `shortlist` items are re-scored as cosine + colour_weight * colour intersection
-        (see colour.py)."""
+               keywords: str | None = None, space: str = "photo", refine: np.ndarray | None = None,
+               refine_weight: float = 0.3) -> pd.DataFrame:
+        """Top-k by cosine similarity. Text search: space="text" plus `keywords` (keyword match
+        added to the rank; the "similarity" column stays the cosine). A photo refined with words
+        ("like this, but in red"): `refine` is the text vector, and the rank becomes
+        (1 - w) * photo cosine + w * text cosine, each in its own space (the score-level version
+        of mixing the two vectors). With `query_colour`, the top `shortlist` items are re-scored
+        as + colour_weight * colour intersection (see colour.py)."""
         mask = filters.mask(self.catalog) if filters else None
         if exclude:
             mask = np.ones(len(self.catalog), bool) if mask is None else mask.copy()
             mask[[self._row(i) for i in exclude]] = False
-        scores = self.similarities(query)
+        scores = self.similarities(query, space=space)
         rank = scores + self.KEYWORD_WEIGHT * self.keyword_scores(keywords) if keywords else scores
+        if refine is not None:
+            rank = (1 - refine_weight) * rank + refine_weight * self.similarities(refine, space="text")
         use_colour = query_colour is not None and self.colour_hists is not None and colour_weight > 0
         rows = top_k(rank, max(k, shortlist) if use_colour else k, mask)
         final = rank[rows]
@@ -148,10 +161,11 @@ class SearchEngine:
         result.insert(1, "similarity", scores[rows])
         return result.reset_index(drop=True)
 
-    def best_match(self, query: np.ndarray, filters: Filters | None = None) -> tuple[pd.Series, np.ndarray]:
-        """Top result by pure similarity (no colour re-ranking) and its top-5 scores, for the
+    def best_match(self, query: np.ndarray, filters: Filters | None = None,
+                   refine: np.ndarray | None = None) -> tuple[pd.Series, np.ndarray]:
+        """Top result by pure photo similarity (no colour re-ranking) and its top-5 scores, for the
         exact-match confidence, which was calibrated on pure similarity."""
-        top = self.search(query, k=5, filters=filters)
+        top = self.search(query, k=5, filters=filters, refine=refine)
         return top.iloc[0], top.similarity.values
 
     def _row(self, item_id: str) -> int:

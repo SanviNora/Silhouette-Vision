@@ -19,7 +19,8 @@ Outputs:
   data/processed/attribute_predictions.parquet      search catalog: item_id + pred_<attr> + conf_<attr>
   artifacts/models/attributes.joblib                fitted predictors, for the app
 
-Usage: python scripts/04_attributes.py [--features marqo|gr_lite|concat]
+Usage: python scripts/04_attributes.py [--features photo|marqo|gr_lite|concat]
+(photo = the app's photo model, config.PHOTO_MODEL; only it writes the app's heads and predictions)
 """
 
 import argparse
@@ -45,13 +46,15 @@ from silhouette_vision.attributes import (
     zero_shot,
 )
 from silhouette_vision.catalog import load_catalog, load_legacy_catalog
-from silhouette_vision.config import ROOT, path
-from silhouette_vision.embed import load_embeddings
+from silhouette_vision.config import PHOTO_MODEL, ROOT, TEXT_MODEL, path
+from silhouette_vision.embed import load_embeddings, subset_embeddings
 from silhouette_vision.encoders import load_encoder
 from silhouette_vision.recent_labels import recent_labels
 
 
 def features(kind: str, catalog: pd.DataFrame) -> np.ndarray:
+    if kind == "photo":  # the app's photo model; Myntra rows embedded on demand (labels are Myntra-only)
+        return subset_embeddings(PHOTO_MODEL, catalog, np.flatnonzero(catalog.source.values == "myntra"), "myntra")
     marqo = load_embeddings("marqo_fashion_siglip__legacy", catalog)
     if kind == "marqo":
         return marqo
@@ -97,16 +100,18 @@ def scores(y_true, y_pred) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--features", choices=["marqo", "gr_lite", "concat"], default="marqo")
+    ap.add_argument("--features", choices=["photo", "marqo", "gr_lite", "concat"], default="photo")
     args = ap.parse_args()
 
     catalog = load_legacy_catalog()
     X_all = features(args.features, catalog)
     labels = label_frame(catalog)
     split = group_split(catalog.loc[labels.index])
-    marqo = load_encoder("marqo_fashion_siglip", device="cpu")
+    image_text = args.features in ("photo", "marqo")  # zero-shot and app outputs need an image-text model
+    model = PHOTO_MODEL if args.features == "photo" else TEXT_MODEL
+    marqo = load_encoder(model, device="cpu")  # either way, the text tower is Marqo's
     search = load_catalog()
-    X_search = load_embeddings("marqo_fashion_siglip", search)
+    X_search = load_embeddings(model, search)
     recent = recent_labels(search, ROOT)
     report, predictions = {}, pd.DataFrame({"item_id": search.item_id})
     bundle = {"type_to_category": type_to_category(catalog, labels).to_dict(), "attributes": {}}
@@ -121,7 +126,7 @@ def main():
         res = {"classes": len(classes), "n_train": int(tr.sum()), "n_test": int(te.sum())}
 
         # 1. zero-shot (only possible with the image-text model's embeddings)
-        if args.features == "marqo":
+        if image_text:
             text = marqo.embed_texts(prompt_texts(attr, classes))
             zs_pred, _ = zero_shot(X, text)
             zs = np.array(classes)[zs_pred]
@@ -155,7 +160,7 @@ def main():
 
         # Refit the chosen trained method on train+val (+ recent labels) and predict the
         # applicable items of the search catalog.
-        if args.features == "marqo":
+        if args.features == "photo":
             categories = applicable_categories(catalog, labels, attr.name)
             if attr.name == "article_type":
                 categories = sorted(set(categories) | {"shoes"})
@@ -201,7 +206,7 @@ def main():
 
     out = path("reports") / f"attributes_{args.features}.json"
     out.write_text(json.dumps(report, indent=2))
-    if args.features == "marqo":
+    if args.features == "photo":
         predictions.to_parquet(ROOT / "data/processed/attribute_predictions.parquet", index=False)
         models = path("models")
         models.mkdir(parents=True, exist_ok=True)

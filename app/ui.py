@@ -50,13 +50,14 @@ Portfolio project, not affiliated with any brand or retailer.
 
 **Products (2019–2026)**: *ZooClaw-Fashion* (2026, SerendipityOne, CC BY-NC 4.0) ·
 *Second-Hand Fashion* (2022–24, Nauman et al., RISE, Wargön Innovation, Myrorna, CC BY 4.0,
-doi:10.5281/zenodo.13788681) · *LookBench* studio gallery (2025, Apache-2.0) · footwear from
-*Amazon Berkeley Objects* (c. 2019–21, Collins et al., CVPR 2022, CC BY 4.0).
+doi:10.5281/zenodo.13788681) · *LookBench* studio gallery (2025, Apache-2.0) · footwear, bags,
+jewellery and accessories from *Amazon Berkeley Objects* (c. 2019–21, Collins et al., CVPR 2022, CC BY 4.0).
 
 **Demand**: *Visuelle 2.0*, Skenderi et al., CVPR Workshops 2022, CC BY-NC-SA 4.0.
 
-**Models**: Marqo-FashionSigLIP, YOLOS-Fashionpedia; attribute heads trained on Fashion Product
-Images (Myntra, MIT) and the catalog sources' own labels.
+**Models**: MODA-Fashion-Distilled (Hopit AI, MIT) for photos, Marqo-FashionSigLIP (Apache-2.0) for
+text, YOLOS-Fashionpedia; attribute heads trained on Fashion Product Images (Myntra, MIT) and the
+catalog sources' own labels.
 """
 
 # --- style --------------------------------------------------------------------------------------
@@ -347,7 +348,7 @@ def get_data() -> None:
 @st.cache_resource(show_spinner="Loading the search model…")
 def get_engine() -> SearchEngine:
     get_data()
-    return SearchEngine("marqo_fashion_siglip")
+    return SearchEngine()  # photos in MODA space, text in Marqo space (config.PHOTO_MODEL / TEXT_MODEL)
 
 
 @st.cache_resource(show_spinner=False)
@@ -502,7 +503,7 @@ def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     cat = engine.catalog
     st.sidebar.markdown("### Filters")
     sources = st.sidebar.multiselect("Catalog", list(SOURCE_LABEL), format_func=SOURCE_LABEL.get,
-                                     help="Second-hand garments are 31.9k of the 51k products; pick sources to narrow down.")
+                                     help="Second-hand garments are 31.9k of the 55k products; pick sources to narrow down.")
     categories = st.sidebar.multiselect("Category", sorted(cat.category.unique()), format_func=str.capitalize)
     genders = st.sidebar.multiselect("For", sorted(cat.gender.dropna().unique()))
     condition = st.sidebar.radio("Condition", ["Any", "New", "Pre-owned"], horizontal=True)
@@ -510,7 +511,7 @@ def sidebar_filters(engine: SearchEngine) -> tuple[Filters, int, bool]:
     match_colour = st.sidebar.toggle(
         "Match colour", value=engine.has_colour, disabled=not engine.has_colour,
         help="Re-ranks photo results toward the photo's colours: colour agreement 50.8% → 54.8% on held-out garments.")
-    st.sidebar.caption(f"{len(cat):,} products, 2019–2026 · search model: Marqo-FashionSigLIP")
+    st.sidebar.caption(f"{len(cat):,} products, 2019–2026 · photos: MODA · words: Marqo-FashionSigLIP")
     preowned = {"Any": None, "New": False, "Pre-owned": True}[condition]
     return Filters(sources, categories, genders, preowned), k, match_colour
 
@@ -740,8 +741,7 @@ def marquee(words: list[str]) -> str:
 def photo_results(engine, filters, k, match_colour) -> None:
     a = ss.analysis
     query = a["vec"]
-    if ss.get("refine"):
-        query = engine.combine(query, engine.text_vector(ss.refine), 0.3)
+    refine = engine.text_vector(ss.refine) if ss.get("refine") else None
     with st.container(key="results"):
         seen = [x["value"] for x in a["attrs"] if x["attribute"] in ("article_type", "colour", "pattern")]
         named = a.get("named")
@@ -753,18 +753,14 @@ def photo_results(engine, filters, k, match_colour) -> None:
             st.markdown('<span class="sv-paper">what we see</span>', unsafe_allow_html=True)
             st.markdown(chips([f"{x['label']}: {x['value']} · {x['confidence']:.0%}" for x in a["attrs"]]),
                         unsafe_allow_html=True)
-            predictor, _ = get_attributes()
-            kind = next((x["value"] for x in a["attrs"] if x["attribute"] == "article_type"), None)
-            if predictor is not None and predictor.type_to_category.get(kind) == "jewellery":
-                st.info("This looks like jewellery, which the catalog doesn't carry: results show the closest accessories.")
             named_panel(engine, a)
         with right:
-            best_match_panel(engine, query, filters, a)
+            best_match_panel(engine, query, filters, a, refine)
         colour = engine.image_colour(a["query_img"]) if match_colour else None
         st.markdown('<div class="sv-display" style="margin-top:2.2rem">Your <em>look-alikes</em></div>'
                     '<div class="sv-note">✓ shared and ≈ close attributes with your photo; the number is visual similarity '
                     "(1.00 = identical image). The dot shows each item's main colour.</div>", unsafe_allow_html=True)
-        grid(engine.search(query, k, filters, query_colour=colour), "img", a["attrs"])
+        grid(engine.search(query, k, filters, query_colour=colour, refine=refine), "img", a["attrs"])
 
 
 def named_panel(engine, a) -> None:
@@ -792,11 +788,11 @@ def named_panel(engine, a) -> None:
                          f'src="{data_uri(str(DATA_ROOT / row.image_path))}"/></div>', unsafe_allow_html=True)
 
 
-def best_match_panel(engine, query, filters, a) -> None:
+def best_match_panel(engine, query, filters, a, refine=None) -> None:
     matcher = get_match_confidence()
     if matcher is None:
         return
-    row, top = engine.best_match(query, filters)
+    row, top = engine.best_match(query, filters, refine)
     prob = matcher.probability(top)
     tier = matcher.tier(prob)
     colour = next(c for key, c in TIER_COLOUR.items() if tier.startswith(key))
@@ -809,7 +805,7 @@ def best_match_panel(engine, query, filters, a) -> None:
                     f'<div class="dial" style="--p:{prob * 100:.0f};--c:{colour}"><div class="arc"></div><div class="num">{prob:.0%}</div>'
                     f'<div class="ticks"><span>unlikely</span><span>exact</span></div></div><h3>{esc(tier)}</h3></div>'
                     f'<div class="row"><b>Exact-match likelihood {prob:.0%}</b><span>similarity {row.similarity:.2f}</span></div>'
-                    "<p>Calibrated on benchmark photos: when this says 80%+, it was the exact product 88% of the time; "
+                    "<p>Calibrated on benchmark photos: when this says 80%+, it was the exact product 90% of the time; "
                     "for products we don't stock it claims 80%+ for 0.1% of photos. It rewards a result that stands out "
                     "from the rest, not raw similarity. Open the product to see why it matches.</p></div>",
                     unsafe_allow_html=True)
@@ -823,7 +819,7 @@ def words_results(engine, filters, k) -> None:
                     '<div class="sv-note">Matched on look (image embedding) and words (brand, title, type) together.</div>',
                     unsafe_allow_html=True)
         # No similarity number: text-image cosines are small by nature (~0.1) and would read as poor.
-        grid(engine.search(engine.text_vector(text), k, filters, keywords=text), "txt", show_similarity=False)
+        grid(engine.search(engine.text_vector(text), k, filters, keywords=text, space="text"), "txt", show_similarity=False)
 
 
 # --- product detail (Allure) ----------------------------------------------------------------------
@@ -1052,15 +1048,15 @@ def forecast_page(engine) -> None:
 def about_page() -> None:
     page_hero("About <em>the project</em>", "Fashion visual search that tells you how sure it is.")
     with st.container(key="section"):
-        facts = [("51,047", "products, 2019–2026"), ("88%", "right when it says 80%+ exact"),
-                 ("+18 pts", "text search, hybrid"), ("161", "luxury models by name"), ("34.6%", "forecast error vs 43.7%")]
+        facts = [(f"{len(get_engine().catalog):,}", "products, 2019–2026"), ("90%", "right when it says 80%+ exact"),
+                 ("+18 pts", "text search, hybrid"), ("161", "luxury models by name"), ("34.4%", "forecast error vs 43.7%")]
         for col, (v, label) in zip(st.columns(len(facts)), facts, strict=True):
             col.metric(label, v)
         st.markdown('<span class="sv-paper">how it works</span>', unsafe_allow_html=True)
         st.markdown("""
-- **Search by photo**: Marqo-FashionSigLIP embeddings, exact search, colour-aware re-ranking, a garment detector to pick one item.
-- **Search by words**: the same embeddings plus keyword matching on brand, title and type.
-- **What we see**: attribute heads trained on Myntra plus the catalog's own labels (type 81%, colour 88% on recent photos).
+- **Search by photo**: MODA embeddings (exact product first for 56.5% of benchmark photos vs 51.6% with Marqo), exact search, colour-aware re-ranking, a garment detector to pick one item.
+- **Search by words**: Marqo-FashionSigLIP text embeddings plus keyword matching on brand, title and type.
+- **What we see**: attribute heads trained on Myntra plus the catalog's own labels (type 79%, colour 86% on recent photos).
 - **Exact match**: a calibrated likelihood from how much the best result stands out.
 - **Why it matches**: shared attributes and an occlusion heatmap.
 - **Style map**: UMAP + k-means per category. **Forecast**: gradient boosting with look-alike launches (Visuelle 2.0).

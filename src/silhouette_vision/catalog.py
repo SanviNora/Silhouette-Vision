@@ -2,7 +2,7 @@
 
 Search catalog (data/processed/catalog.parquet): recent products, all shareable:
   ZooClaw-Fashion (2026, CC BY-NC 4.0), LookBench gallery (2025, Apache-2.0),
-  Second-Hand Fashion (2022-24, CC BY 4.0), and footwear from Amazon Berkeley Objects
+  Second-Hand Fashion (2022-24, CC BY 4.0), and footwear, bags, jewellery and accessories from Amazon Berkeley Objects
   (c. 2019-2021, CC BY 4.0), because the recent sources carry almost no shoes.
 Legacy catalog (data/processed/legacy_catalog.parquet): Myntra (2007-2018, MIT) + Farfetch (2019,
   scraped, analysis only). Kept locally to train the attribute heads and reproduce Phases 1-4.
@@ -257,6 +257,19 @@ def build_secondhand() -> pd.DataFrame:
 
 
 ABO_DIR = Path("data/raw/abo")
+# ABO accessories (added October 2026): type -> (category, item type shown in the app).
+ABO_ACCESSORY_TYPES = {
+    "FINERING": ("jewellery", "ring"), "RING": ("jewellery", "ring"), "FASHIONRING": ("jewellery", "ring"),
+    "FINEEARRING": ("jewellery", "earrings"), "EARRING": ("jewellery", "earrings"),
+    "FASHIONEARRING": ("jewellery", "earrings"),
+    "FINENECKLACEBRACELETANKLET": ("jewellery", "necklace / bracelet"), "NECKLACE": ("jewellery", "necklace"),
+    "BRACELET": ("jewellery", "bracelet"), "FASHIONNECKLACEBRACELETANKLET": ("jewellery", "necklace / bracelet"),
+    "JEWELRY_SET": ("jewellery", "jewellery set"),
+    "HANDBAG": ("bag", "handbag"), "TOTE_BAG": ("bag", "tote bag"), "BACKPACK": ("bag", "backpack"),
+    "WALLET": ("bag", "wallet"),
+    "HAT": ("accessory", "hat"), "EYEWEAR": ("accessory", "eyewear"), "SUNGLASSES": ("accessory", "sunglasses"),
+    "WATCH": ("accessory", "watch"),
+}
 GENDER_WORDS = {"women's": "Women", "womens": "Women", "men's": "Men", "mens": "Men", "girls'": "Kids",
                 "girl's": "Kids", "boys'": "Kids", "boy's": "Kids", "kids'": "Kids", "unisex": "Unisex",
                 "unisex-adult": "Unisex", "unisex-child": "Kids", "baby": "Kids"}
@@ -265,7 +278,9 @@ GENDER_WORDS = {"women's": "Women", "womens": "Women", "men's": "Men", "mens": "
 def _abo_name(name: str, brand: str | None) -> dict:
     """"Amazon Brand - The Fix Women's Kennedi Slouch Boot, Black, 8.5 B US" ->
     brand The Fix, title "Kennedi Slouch Boot", gender Women, colour Black."""
-    brand = re.sub(r"^Amazon Brand\s*-?\s*", "", brand or "").strip() or None
+    brand = brand if isinstance(brand, str) else ""  # missing brands arrive as NaN
+    brand = re.sub(r"\s*\([^)]*\)\s*$", "", brand)  # "Amazon Collection(アマゾンコレクション)"
+    brand = re.sub(r"^Amazon Brand\s*-?\s*", "", brand).strip() or None
     name = re.sub(r"^Amazon Brand\s*-?\s*", "", name)
     # Indian listings: "Beige Formal Shoes-9 UK (43 EU) (10 US) (AZ-SY-435)": drop size and codes
     name = re.sub(r"[-\s]*\d+(\.\d+)?\s*(UK|US|EU)\b.*$", "", name)
@@ -285,16 +300,26 @@ def _abo_name(name: str, brand: str | None) -> dict:
 
 
 def build_abo() -> pd.DataFrame:
-    """Footwear from Amazon Berkeley Objects (CC BY 4.0; listings c. 2019-2021)."""
-    a = pd.read_parquet(DATA_ROOT / ABO_DIR / "footwear.parquet")
+    """Footwear, bags, jewellery and accessories from Amazon Berkeley Objects (CC BY 4.0;
+    listings c. 2019-2021). One row per product photo."""
+    shoes = pd.read_parquet(DATA_ROOT / ABO_DIR / "footwear.parquet").assign(
+        category="shoes", item_type=lambda d: d["type"].str.lower())
+    parts = [shoes]
+    extra = DATA_ROOT / ABO_DIR / "accessories.parquet"
+    if extra.exists():
+        acc = pd.read_parquet(extra)
+        acc = acc[acc["type"].isin(ABO_ACCESSORY_TYPES)]
+        parts.append(acc.assign(category=acc["type"].map(lambda t: ABO_ACCESSORY_TYPES[t][0]),
+                                item_type=acc["type"].map(lambda t: ABO_ACCESSORY_TYPES[t][1])))
+    a = pd.concat(parts, ignore_index=True).drop_duplicates("main_image_id")
     a = a[a.main_image_id.map(lambda i: (DATA_ROOT / ABO_DIR / "images" / f"{i}.jpg").exists())]
     parsed = pd.DataFrame([_abo_name(n, b) for n, b in zip(a.name, a.brand, strict=True)], index=a.index)
     sid = a.main_image_id.astype(str)
     return pd.DataFrame({
         "item_id": "abo_" + sid, "source": "abo", "source_id": sid,
         "raw_image_path": str(ABO_DIR / "images") + "/" + sid + ".jpg",
-        "title": parsed.title, "brand": parsed.brand, "gender": parsed.gender, "category": "shoes",
-        "item_type": a["type"].str.lower(), "colour": parsed.colour, "is_preowned": False, "year": 2021,
+        "title": parsed.title, "brand": parsed.brand, "gender": parsed.gender, "category": a.category,
+        "item_type": a.item_type, "colour": parsed.colour, "is_preowned": False, "year": 2021,
     })
 
 

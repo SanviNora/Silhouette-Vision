@@ -1,5 +1,55 @@
 # Phase 2 Results — Measuring Quality
 
+## Update 2026-10-14: photos now use MODA, text stays on Marqo
+**MODA-Fashion-Distilled** (Hopit AI, 2026, MIT) is Marqo-FashionSigLIP with the image tower
+distilled from a 3-model ensemble for shop/consumer matching; the text tower is byte-identical to
+Marqo's (all 152 text tensors equal; all 162 vision tensors changed). Same size and speed.
+
+**Photo search, LookBench (2,345 queries + 58k distractors, scripts/eval_lookbench.py):**
+
+| Subset | Marqo exact R@1 | MODA exact R@1 |
+|---|---|---|
+| Real studio | 55.4 | 59.7 |
+| AI studio | 69.4 | 79.8 |
+| Real street | 41.8 | 46.4 |
+| AI street | 65.6 | 70.0 |
+| **Overall R@1 / R@10** | 51.6 / 79.7 | **56.5 / 83.8** |
+| Fine R@1 (model card: 67.63) | 63.8 | 67.7 |
+
+Paired bootstrap over queries: +4.9 points, 95% CI [3.6, 6.2]; MODA alone is right on 174
+queries Marqo misses, the reverse on 59. One model now beats the old Marqo + GR-Lite blend
+(55.4 on the held-out half). Caveat: the card picks a "best checkpoint" without saying on which
+data, so LookBench may slightly favour it; hence the checks below on other data.
+
+**Text search got worse with MODA's image vectors** (ZooClaw, zero-shot, whole catalog, embedding
+only): long queries R@10 65.1 → 54.9, short 63.0 → 54.3. The retrained image tower drifted from
+the unchanged text tower. **Design:** one model in memory; photos are compared with MODA catalog
+vectors, text with the stored Marqo catalog vectors (still aligned with the shared text tower), so
+text search is unchanged. A photo refined with words mixes the two scores, each in its own space.
+
+**Catalog neighbours (P@10):** mixed: colour 51.2 → 53.6%, pattern 68.4 → 70.6%, type 60.7 →
+59.3%, ZooClaw brand 8.5 → 7.1%. **11 test photos:** about equal (better: burgundy heels, yellow
+top, polka dots; worse: white maxi dress).
+
+**Everything that reads a photo was retrained on MODA vectors and re-checked:**
+
+| Part | Marqo | MODA |
+|---|---|---|
+| In-catalog studio photos, exact #1 (985 vs whole catalog) | 48.9% | 54.1% |
+| "Very likely" (P ≥ 0.8): precision / share shown | 88% / 22% | 90% / 25% |
+| Degraded catalog photos found with ≥ 80% confidence | 43% | 62% |
+| Absent products called "very likely" | 0.1% | 0.1% |
+| Absent products called "possibly" | 4.3% (P ≥ 0.5) | 2.7% (P ≥ 0.6, new threshold) |
+| Named luxury models, top-1 / precision at P ≥ 0.8 / recognised at 0.8 | 92.0 / 96.0 / 67% | 90.7 / 94.9 / 58% |
+| Attributes, recent photos: type / colour / pattern | 80.7 / 87.5 / 79.0% | 79.0 / 86.1 / 78.8% |
+| Demand, weekly WAPE (image effect) | 34.6 (−1.03) | 34.4 (−1.18, CI 0.70–1.66) |
+
+The "possibly" threshold moved from 0.5 to 0.6 because MODA's calibrator gave mid-range
+probabilities to absent products more often (13.7% at 0.5). It was chosen on the catalog check
+itself, so treat 2.7% as optimistic. Named-model recognition and recent-photo attributes lost
+1–2 points (they depend on image–text alignment or were tuned on Marqo); accepted for the
+search gains.
+
 ## Update 2026-09-29: measured again on the recent catalog (51,047 products)
 **Which model? Marqo stays.** ZooClaw-FashionSigLIP2 (2026, Apache-2.0; its authors' table puts
 it far ahead) was measured on identical data:

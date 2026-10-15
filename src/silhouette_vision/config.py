@@ -16,6 +16,13 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+
+# Model roles (docs/phase2_results.md, October 2026 update). Photos are embedded with MODA (LookBench
+# exact R@1 51.6 -> 56.5); its text tower is Marqo-FashionSigLIP's, unchanged, so text queries are
+# matched against the Marqo catalog embeddings, where image and text are still aligned (text search
+# against MODA image embeddings loses ~10 points of R@10). One model in memory serves both.
+PHOTO_MODEL = "moda_fashion_distilled"
+TEXT_MODEL = "marqo_fashion_siglip"
 DATA_REPO = os.environ.get("DATA_REPO", "Sanvii/silhouette-vision-data")
 if "SILHOUETTE_DATA_ROOT" in os.environ:
     DATA_ROOT, HOSTED = Path(os.environ["SILHOUETTE_DATA_ROOT"]), False

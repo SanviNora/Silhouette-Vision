@@ -16,8 +16,9 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from silhouette_vision.catalog import load_legacy_catalog
+from silhouette_vision.config import PHOTO_MODEL as MODEL
 from silhouette_vision.config import path
-from silhouette_vision.embed import load_embeddings
+from silhouette_vision.embed import subset_embeddings
 from silhouette_vision.encoders import load_encoder
 from silhouette_vision.named_models import (
     TEMPLATES,
@@ -29,7 +30,6 @@ from silhouette_vision.named_models import (
     title_model,
 )
 
-MODEL = "marqo_fashion_siglip"
 KIND_CATEGORIES = {"bag": {"bag"}, "wallet": {"bag", "accessory", "other"}, "shoes": {"shoes"},
                    "belt": {"accessory", "other"}, "outerwear": {"outerwear"}}
 N_NEGATIVES = 6000
@@ -51,12 +51,12 @@ def labelled_items(catalog, models):
 
 def main():
     catalog = load_legacy_catalog()
-    emb = load_embeddings(f"{MODEL}__legacy", catalog)
     encoder = load_encoder(MODEL)
     models = load_models()
     embed_text = lambda t: encoder.embed_texts([t])[0]
 
     pos_rows, pos_label, neg_rows = labelled_items(catalog, models)
+    emb = subset_embeddings(MODEL, catalog, np.union1d(pos_rows, neg_rows), "named_eval")
     print(f"{len(models)} named models; {len(pos_rows)} catalog photos name one "
           f"({len(set(pos_label))} distinct models); {len(neg_rows)} negatives from unlisted brands")
 

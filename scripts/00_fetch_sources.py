@@ -76,10 +76,10 @@ ABO_URL = "https://amazon-berkeley-objects.s3.amazonaws.com"
 ABO_FOOTWEAR = {"SHOES", "BOOT", "SANDAL"}
 
 
-def fetch_abo():
+def fetch_abo(types=frozenset(ABO_FOOTWEAR), out_file="footwear.parquet"):
     """Footwear from Amazon Berkeley Objects (CC BY 4.0, Amazon listings c. 2019-2021): the
     recent sources carry almost no shoes. One photo per product (listings repeat a shoe across
-    marketplaces and sizes), originals shrunk to 1024 px."""
+    marketplaces and sizes), originals shrunk to 1024 px. With other `types`: the accessories."""
     import gzip
     import io
     import json
@@ -103,7 +103,7 @@ def fetch_abo():
             for line in lines:
                 d = json.loads(line)
                 kind = d["product_type"][0]["value"] if d.get("product_type") else ""
-                if kind not in ABO_FOOTWEAR or not d.get("main_image_id"):
+                if kind not in types or not d.get("main_image_id"):
                     continue
                 names = d.get("item_name", [])
                 english = [n["value"] for n in names if n.get("language_tag", "").startswith("en")]
@@ -135,11 +135,19 @@ def fetch_abo():
     with ThreadPoolExecutor(8) as pool:
         list(pool.map(get, listings.main_image_id))
     listings = listings[listings.main_image_id.map(lambda i: (out / "images" / f"{i}.jpg").exists())]
-    listings.to_parquet(out / "footwear.parquet", index=False)
-    print(f"abo: {len(listings):,} footwear products, {listings.brand.nunique()} brands")
+    listings.to_parquet(out / out_file, index=False)
+    print(f"abo: {len(listings):,} products in {out_file}, {listings.brand.nunique()} brands")
+
+
+def fetch_abo_accessories():
+    """Bags, jewellery, hats, eyewear and watches (added October 2026)."""
+    from silhouette_vision.catalog import ABO_ACCESSORY_TYPES
+
+    fetch_abo(frozenset(ABO_ACCESSORY_TYPES), "accessories.parquet")
 
 
 if __name__ == "__main__":
-    which = sys.argv[1:] or ["zooclaw", "secondhand", "abo"]
+    which = sys.argv[1:] or ["zooclaw", "secondhand", "abo", "abo_accessories"]
     for name in which:
-        {"zooclaw": fetch_zooclaw, "secondhand": fetch_secondhand, "abo": fetch_abo}[name]()
+        {"zooclaw": fetch_zooclaw, "secondhand": fetch_secondhand, "abo": fetch_abo,
+         "abo_accessories": fetch_abo_accessories}[name]()

@@ -72,7 +72,7 @@ def test_match_confidence_rewards_standing_out(tmp_path, monkeypatch):
 
     from silhouette_vision import match
 
-    params = {"marqo": {"coef": [2.0, 30.0, 10.0], "intercept": -3.0}}
+    params = {"photo": {"coef": [2.0, 30.0, 10.0], "intercept": -3.0}}
     (tmp_path / "match_confidence.json").write_text(json.dumps(params))
     monkeypatch.setattr(match, "path", lambda key: tmp_path)
     m = match.MatchConfidence()

@@ -30,7 +30,7 @@ from PIL import Image, ImageEnhance
 from sklearn.linear_model import LogisticRegression
 
 from silhouette_vision.catalog import load_catalog
-from silhouette_vision.config import ROOT, path
+from silhouette_vision.config import PHOTO_MODEL, ROOT, path
 from silhouette_vision.embed import load_embeddings
 from silhouette_vision.images import load_rgb
 from silhouette_vision.search import SearchEngine
@@ -108,11 +108,11 @@ def catalog_check(lr) -> dict:
     """Studio queries (product in the catalog as lb_<item_ID>): exact top-1 rate and calibration.
     Street queries (product not in the catalog): share of photos wrongly claimed exact."""
     catalog = load_catalog()
-    emb = load_embeddings("marqo_fashion_siglip", catalog)
+    emb = load_embeddings(PHOTO_MODEL, catalog)
     row_of = pd.Series(np.arange(len(catalog)), index=catalog.item_id)
     result = {}
     for subset in ["real_studio_flat", "real_streetlook"]:
-        q = np.load(path("embeddings") / "lookbench" / "marqo_fashion_siglip" / f"{subset}_query.npy").astype(np.float32)
+        q = np.load(path("embeddings") / "lookbench" / PHOTO_MODEL / f"{subset}_query.npy").astype(np.float32)
         ids = pq.read_table(LB / subset / "query.parquet", columns=["item_ID"]).column(0).to_pylist()
         keep = np.array([f"lb_{i}" in row_of for i in ids])
         q, target = q[keep], row_of[[f"lb_{i}" for i, k in zip(ids, keep, strict=True) if k]].values
@@ -156,7 +156,7 @@ def main():
     args = ap.parse_args()
 
     out, models = {}, {}
-    for mode, model, other in [("marqo", "marqo_fashion_siglip", None)]:
+    for mode, model, other in [("photo", PHOTO_MODEL, None)]:
         lr, res = calibrate(*lookbench_top1(model, other))
         out[mode], models[mode] = res, lr
         print(f"\n[{mode}] top-1 is exact for {100 * res['base_rate']:.1f}% of queries; "
@@ -169,7 +169,7 @@ def main():
             print(f"   say 'exact match' when P >= {t}: {100 * c['share_of_queries']:5.1f}% of queries, "
                   f"precision {prec}")
 
-    out["catalog_lookbench"] = catalog_check(models["marqo"])
+    out["catalog_lookbench"] = catalog_check(models["photo"])
 
     # Robustness: degraded catalog photos should find themselves, confidently.
     engine = SearchEngine()
@@ -182,7 +182,7 @@ def main():
         res = engine.search(engine.image_vector(img), k=5)
         found.append(res.item_id.iloc[0] == catalog.item_id.iloc[i])
         feats.append(features(res.similarity.values[None, :])[0])
-    found, conf = np.array(found), models["marqo"].predict_proba(np.array(feats))[:, 1]
+    found, conf = np.array(found), models["photo"].predict_proba(np.array(feats))[:, 1]
     out["robustness"] = {"n": len(found), "top1_is_original": float(found.mean()),
                          "median_confidence_when_found": float(np.median(conf[found])),
                          "share_found_and_confident_0.8": float((found & (conf >= 0.8)).mean())}

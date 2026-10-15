@@ -92,3 +92,17 @@ def test_colour_off_changes_nothing():
     a = engine.search(q, k=10)
     b = engine.search(q, k=10, query_colour=np.eye(8, dtype=np.float32)[1], colour_weight=0.0)
     assert a.item_id.tolist() == b.item_id.tolist()
+
+
+def test_text_queries_use_the_text_space_and_refine_mixes_scores():
+    """Photos rank in the photo space; text (space="text") and refinements in the text space."""
+    engine = make_engine()
+    rng = np.random.default_rng(1)
+    text = rng.normal(size=engine.embeddings.shape).astype(np.float32)
+    engine.text_embeddings = (text / np.linalg.norm(text, axis=1, keepdims=True)).astype(np.float16)
+    q = engine.text_embeddings[7].astype(np.float32)
+    assert engine.search(q, k=1, space="text").item_id.iloc[0] == engine.catalog.item_id.iloc[7]
+    photo = engine.embeddings[3].astype(np.float32)
+    assert engine.search(photo, k=1).item_id.iloc[0] == engine.catalog.item_id.iloc[3]
+    # full weight on the refinement: the text match wins
+    assert engine.search(photo, k=1, refine=q, refine_weight=1.0).item_id.iloc[0] == engine.catalog.item_id.iloc[7]

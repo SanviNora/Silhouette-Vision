@@ -12,8 +12,10 @@ import numpy as np
 
 from silhouette_vision.config import path
 
+# "Possibly" from 0.6: with MODA, 0.5 shows it for 13.7% of photos of products we don't stock; 0.6
+# brings that to 2.7% (Marqo at 0.5: 4.3%) with 76% precision on in-catalog photos (Marqo: 68%).
 TIERS = [(0.8, "Very likely the exact product"),
-         (0.5, "Possibly the exact product"),
+         (0.6, "Possibly the exact product"),
          (0.0, "No confident exact match - closest alternatives")]
 
 
@@ -21,7 +23,7 @@ class MatchConfidence:
     def __init__(self):
         self.params = json.loads((path("models") / "match_confidence.json").read_text())
 
-    def probability(self, top_scores: np.ndarray, mode: str = "marqo") -> float:
+    def probability(self, top_scores: np.ndarray, mode: str = "photo") -> float:
         """P(top result is the exact product) from the descending top-5 similarity scores."""
         s = np.sort(np.asarray(top_scores, dtype=np.float64))[::-1][:5]
         x = np.array([s[0], s[0] - s[1], s[0] - s[4]])

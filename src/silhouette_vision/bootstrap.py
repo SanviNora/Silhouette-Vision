@@ -9,7 +9,7 @@ import shutil
 import tarfile
 from pathlib import Path
 
-BUNDLE_VERSION = "2026-09-30"  # bump when the bundle's contents change
+BUNDLE_VERSION = "2026-10-14"  # bump when the bundle's contents change
 
 
 def ensure_bundle(root: Path, repo: str) -> None:

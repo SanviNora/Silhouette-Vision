@@ -80,12 +80,65 @@ def embed_catalog(
     return emb
 
 
-def load_embeddings(name: str, catalog: pd.DataFrame | None = None) -> np.ndarray:
-    """Load float32 embeddings; if a catalog is given, verify row alignment."""
+def load_embeddings(name: str, catalog: pd.DataFrame | None = None, dtype=np.float32) -> np.ndarray:
+    """Load embeddings (float32 by default; float16 = as stored, no 32-bit copy on the way);
+    if a catalog is given, verify row alignment."""
     out_dir = embeddings_dir(name)
-    emb = np.load(out_dir / "embeddings.npy").astype(np.float32)
+    emb = np.load(out_dir / "embeddings.npy").astype(dtype, copy=False)
     if catalog is not None:
         ids = pd.read_parquet(out_dir / "item_ids.parquet").item_id
         if len(ids) != len(catalog) or not (ids.values == catalog.item_id.values).all():
             raise ValueError(f"{name} embeddings are out of sync with the catalog; re-run embedding")
     return emb
+
+
+def update_embeddings(encoder: Encoder, catalog: pd.DataFrame, **kw) -> np.ndarray:
+    """After the catalog changed: keep the vectors of items already embedded (matched by item_id),
+    embed only the new ones, and save in the new catalog's order. The chunk cache belongs to the
+    old row order, so it is removed (a stale chunk would silently mismatch rows)."""
+    import shutil
+
+    out_dir = embeddings_dir(encoder.name)
+    old = np.load(out_dir / "embeddings.npy")
+    old_ids = pd.read_parquet(out_dir / "item_ids.parquet").item_id
+    row_of = pd.Series(np.arange(len(old_ids)), index=old_ids.values)
+    have = catalog.item_id.isin(row_of.index).values
+    emb = np.zeros((len(catalog), old.shape[1]), np.float16)
+    emb[have] = old[row_of[catalog.item_id[have]].values]
+    if (~have).any():
+        name = encoder.name
+        encoder.name = f"{name}__update"
+        shutil.rmtree(embeddings_dir(encoder.name), ignore_errors=True)
+        emb[~have] = embed_catalog(encoder, catalog[~have].reset_index(drop=True), **kw)
+        shutil.rmtree(embeddings_dir(encoder.name), ignore_errors=True)
+        encoder.name = name
+    shutil.rmtree(out_dir / "chunks", ignore_errors=True)
+    np.save(out_dir / "embeddings.npy", emb)
+    catalog[["item_id"]].to_parquet(out_dir / "item_ids.parquet", index=False)
+    print(f"{encoder.name}: reused {have.sum():,}, embedded {(~have).sum():,}, dropped "
+          f"{len(old_ids) - have.sum():,} items no longer in the catalog")
+    return emb
+
+
+def subset_embeddings(model: str, catalog: pd.DataFrame, rows: np.ndarray, tag: str) -> np.ndarray:
+    """Embeddings for `rows` of `catalog` (embedded once, cached as "<model>__<tag>"), returned in a
+    full-size array with NaN elsewhere. Used to train or evaluate a new model on a slice of the
+    legacy catalog without embedding all 229k legacy images."""
+    from silhouette_vision.encoders import load_encoder
+
+    full_name = f"{model}__legacy"
+    try:
+        return load_embeddings(full_name, catalog)
+    except (FileNotFoundError, ValueError):
+        pass
+    subset = catalog.iloc[np.sort(rows)].reset_index(drop=True)
+    name = f"{model}__{tag}"
+    try:
+        emb = load_embeddings(name, subset)
+    except (FileNotFoundError, ValueError):
+        encoder = load_encoder(model)
+        encoder.name = name
+        emb = embed_catalog(encoder, subset)
+    out = np.full((len(catalog), emb.shape[1]), np.nan, np.float32)
+    out[np.sort(rows)] = emb
+    return out

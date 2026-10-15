@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-from silhouette_vision.config import path
+from silhouette_vision.config import PHOTO_MODEL, path
 
 WEEK_COLS = [f"w{i}" for i in range(12)]
 TRAIN_SEASONS = ["SS17", "AW17", "SS18", "AW18"]
@@ -25,7 +25,7 @@ TAGS = ["category", "color", "fabric"]
 def load_visuelle() -> tuple[pd.DataFrame, pd.DataFrame, np.ndarray]:
     rows = pd.read_parquet(path("processed") / "visuelle_rows.parquet")
     products = pd.read_parquet(path("processed") / "visuelle_products.parquet")
-    emb = np.load(path("embeddings") / "visuelle" / "marqo_fashion_siglip.npy")
+    emb = np.load(path("embeddings") / "visuelle" / f"{PHOTO_MODEL}.npy")
     assert len(emb) == len(products)
     return rows, products, emb
 
@@ -174,7 +174,7 @@ class DemandForecaster:
         import joblib
 
         self.b = joblib.load(path("models") / "demand.joblib")
-        self.emb = np.load(path("embeddings") / "visuelle" / "marqo_fashion_siglip.npy")
+        self.emb = np.load(path("embeddings") / "visuelle" / f"{PHOTO_MODEL}.npy")
         self.products = self.b["products"]
 
     def nearest_similarity(self, image_vec: np.ndarray) -> float:
