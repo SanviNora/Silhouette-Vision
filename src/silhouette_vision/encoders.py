@@ -75,6 +75,15 @@ class MarqoFashionSigLIP(OpenCLIPEncoder):
         super().__init__("marqo_fashion_siglip", "hf-hub:Marqo/marqo-fashionSigLIP", device=device)
 
 
+class MODAFashion(OpenCLIPEncoder):
+    """MODA-Fashion-Distilled (Hopit AI, MIT, 2026): Marqo-FashionSigLIP's architecture with the
+    vision tower distilled from a 3-model ensemble for shop<->consumer matching; 768-d.
+    The text tower is carried over, so text search must be re-checked, not assumed."""
+
+    def __init__(self, device: str | None = None):
+        super().__init__("moda_fashion_distilled", "hf-hub:HopitAI/moda-fashion-distilled", device=device)
+
+
 class ZooClawSigLIP2(_Base):
     """ZooClaw-FashionSigLIP2 (SigLIP2-base 384 px fine-tuned for fashion, Apache-2.0): 768-d,
     image + text. Loaded with transformers' SiglipModel as its model card does."""
@@ -187,6 +196,7 @@ class GRLite(_Base):
 
 ENCODERS = {
     "marqo_fashion_siglip": MarqoFashionSigLIP,
+    "moda_fashion_distilled": MODAFashion,
     # Generic baseline (no fashion training), as in the LookBench paper's CLIP-B/16 row.
     "clip_vit_b16": lambda device=None: OpenCLIPEncoder("clip_vit_b16", "ViT-B-16", "openai", device),
     "zooclaw_fashionsiglip2": ZooClawSigLIP2,
