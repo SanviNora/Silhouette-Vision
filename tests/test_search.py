@@ -106,3 +106,17 @@ def test_text_queries_use_the_text_space_and_refine_mixes_scores():
     assert engine.search(photo, k=1).item_id.iloc[0] == engine.catalog.item_id.iloc[3]
     # full weight on the refinement: the text match wins
     assert engine.search(photo, k=1, refine=q, refine_weight=1.0).item_id.iloc[0] == engine.catalog.item_id.iloc[7]
+
+
+def test_collapse_skips_repeat_listings_of_one_brand():
+    engine = make_engine()
+    engine.catalog["brand"] = ["A"] * len(engine.catalog)
+    engine.catalog.loc[5, "brand"] = "B"
+    # item 1 is a near-copy of item 0 (same brand A); item 5 a near-copy with another brand
+    engine.embeddings[1] = engine.embeddings[0]
+    engine.embeddings[5] = engine.embeddings[0]
+    q = engine.embeddings[0].astype(np.float32)
+    plain = engine.search(q, k=3).item_id.tolist()
+    collapsed = engine.search(q, k=3, collapse=0.97).item_id.tolist()
+    assert set(plain[:3]) >= {"it_0", "it_1"}
+    assert "it_1" not in collapsed and {"it_0", "it_5"} <= set(collapsed) and len(collapsed) == 3

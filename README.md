@@ -1,7 +1,7 @@
 # Silhouette Vision
 
 **Fashion visual search that tells you how sure it is.** Upload a photo or type a description to
-find similar products from 55,469 recent listings (2019–2026). The app predicts attributes, says
+find similar products from 54,882 recent listings (2019–2026). The app predicts attributes, says
 whether the top result is *the exact product*, names iconic luxury models, and explains why each
 result matches. A second tool forecasts 12-week demand for a brand-new product from look-alike
 past launches.
@@ -19,7 +19,7 @@ past launches.
 | Garment picker | YOLOS-Fashionpedia detection; the user picks the item | Street-photo R@1 30.4 → 37.3 (auto-pick: 15.5) |
 | Colour-aware ranking | CIELAB histogram re-ranking of the top 50 | Colour agreement 50.8 → 54.8% |
 | Attributes ("What we see") | Heads on frozen embeddings, trained on Myntra + the catalog's own labels | Held-out recent photos: type 79.0%, colour 86.1%, pattern 78.8%, footwear 99.4% |
-| Exact-match likelihood | Calibrated on how much the best result stands out | In-catalog photos: "≥ 80%" right 90% of the time; absent products claimed exact 0.1% |
+| Exact-match likelihood | Calibrated on how much the best result stands out | In-catalog photos: "≥ 80%" right 92% of the time; absent products claimed exact 0.1% |
 | Named luxury models | Zero-shot over 161 iconic models, type-gated, calibrated | 91% top-1; 95% precision at P ≥ 0.8 |
 | Why it matches | Shared attributes (✓ ≈ ✗) + occlusion heatmap | Heat on the garment 67% (random 21%); validated against 3 other methods |
 | Style map | UMAP + k-means per category, centred per source, named by distinctive style words | 48 styles; which styles are donated second-hand vs sold new |
@@ -82,7 +82,7 @@ streamlit run app/ui.py
 `scripts/11_publish.py` uploads it to [Sanvii/silhouette-vision-data](https://huggingface.co/datasets/Sanvii/silhouette-vision-data);
 Streamlit Community Cloud runs `app/ui.py` and downloads it on first start ([guide](deploy/STREAMLIT_CLOUD.md)).
 
-Tests: `pytest -q` (37 tests; `-m "not slow"` skips the two that download the real model).
+Tests: `pytest -q` (38 tests; `-m "not slow"` skips the two that download the real model).
 
 ## Repository map
 

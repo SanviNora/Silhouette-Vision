@@ -12,6 +12,7 @@ import argparse
 import io
 from concurrent.futures import ProcessPoolExecutor
 
+import pandas as pd
 import pyarrow.parquet as pq
 from PIL import Image
 
@@ -71,6 +72,12 @@ def main():
     odd = [r > (4 if src == "abo" else 3) for r, src in zip(ratio, catalog.source, strict=True)]
     print(f"dropped {sum(odd)} photos with aspect ratio > 3:1")
     catalog = catalog[[not o for o in odd]].reset_index(drop=True)
+
+    dup = ROOT / "data/processed/duplicates.parquet"  # scripts/02b_dedupe.py
+    if dup.exists():
+        removed = set(pd.read_parquet(dup).removed_id)
+        print(f"dropped {catalog.item_id.isin(removed).sum()} known duplicate photos")
+        catalog = catalog[~catalog.item_id.isin(removed)].reset_index(drop=True)
 
     out = ROOT / "data/processed/catalog.parquet"
     catalog.drop(columns=["gallery_row"]).to_parquet(out, index=False)

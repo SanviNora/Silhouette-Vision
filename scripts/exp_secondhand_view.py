@@ -1,10 +1,10 @@
 """Experiment: how to prepare Second-Hand Fashion photos (garments lie sideways on a sorting table).
 
 Variants: raw; rotated upright; rotated + fixed centre crop; rotated + adaptive crop (garment mask
-against the table, see images.garment_view). Scored on ~2,000 garments by (1) leave-one-out
+against the table, see images.garment_view); rotated + BiRefNet cut-out on white (October 2026). Scored on ~2,000 garments by (1) leave-one-out
 10-NN vote accuracy of the labelled type and pattern, (2) zero-shot type accuracy, i.e. how well
 the photo matches "a photo of a {type}" (what text search relies on).
-Usage: python scripts/exp_secondhand_view.py [--n 2000]
+Usage: python scripts/exp_secondhand_view.py [--n 2000] [--model moda_fashion_distilled] [--variants rotated+centre rotated+cutout]
 """
 
 import argparse
@@ -67,9 +67,28 @@ def detector_crop(img: Image.Image) -> Image.Image:
     return best.crop(img, pad=0.06)
 
 
-VARIANTS = {"raw": lambda im: im, "rotated": lambda im: im.rotate(90, expand=True),
-            "rotated+centre": fixed_crop, "rotated+adaptive": garment_mask_crop,
-            "rotated+detector": detector_crop}
+_CUTOUT = None
+CUTOUT_CACHE = ROOT / "artifacts/cache/secondhand_cutout"
+
+
+def cutout(img: Image.Image, garment_id) -> Image.Image:
+    """Rotated, garment cut out onto white by BiRefNet (silhouette_vision.cutout); cached on disk."""
+    global _CUTOUT
+    f = CUTOUT_CACHE / f"{garment_id}.jpg"
+    if f.exists():
+        return Image.open(f).convert("RGB")
+    from silhouette_vision.cutout import GarmentCutout
+
+    _CUTOUT = _CUTOUT or GarmentCutout()
+    out = _CUTOUT(img.rotate(90, expand=True)) or fixed_crop(img)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    out.save(f, quality=90)
+    return out
+
+
+VARIANTS = {"raw": lambda im, g: im, "rotated": lambda im, g: im.rotate(90, expand=True),
+            "rotated+centre": lambda im, g: fixed_crop(im), "rotated+adaptive": lambda im, g: garment_mask_crop(im),
+            "rotated+detector": lambda im, g: detector_crop(im), "rotated+cutout": cutout}
 
 
 def knn_vote(emb, labels, k=10):
@@ -82,6 +101,8 @@ def knn_vote(emb, labels, k=10):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=2000)
+    ap.add_argument("--model", default="marqo_fashion_siglip")
+    ap.add_argument("--variants", nargs="+", default=list(VARIANTS))
     args = ap.parse_args()
     labels = pd.read_parquet(ROOT / "data/raw/secondhand/labels_sample.parquet")
     labels = labels[labels.garment_id.map(lambda i: (IMAGES / f"{i}.jpg").exists())]
@@ -90,14 +111,15 @@ def main():
     labels = labels.sample(min(args.n, len(labels)), random_state=0)
     types = labels["type"].values
     pattern = labels.pattern.fillna("None").values
-    enc = load_encoder("marqo_fashion_siglip")
+    enc = load_encoder(args.model)
     names = sorted(set(types))
     text = enc.embed_texts([f"a photo of a {t.lower()}" for t in names])
     report = {}
-    for name, fn in VARIANTS.items():
+    for name in args.variants:
+        fn = VARIANTS[name]
         vecs = []
         for i in range(0, len(labels), 64):
-            ims = [fn(Image.open(IMAGES / f"{g}.jpg").convert("RGB")) for g in labels.garment_id.iloc[i:i + 64]]
+            ims = [fn(Image.open(IMAGES / f"{g}.jpg").convert("RGB"), g) for g in labels.garment_id.iloc[i:i + 64]]
             vecs.append(enc.embed_images(ims))
         emb = np.vstack(vecs)
         zs = np.array(names)[(emb @ text.T).argmax(1)]
@@ -107,7 +129,8 @@ def main():
               f"{100 * report[name]['pattern_knn']:.1f}%  type zero-shot {100 * report[name]['type_zero_shot']:.1f}%",
               flush=True)
     report["n"], report["types"] = len(labels), len(names)
-    (path("reports") / "exp_secondhand_view.json").write_text(json.dumps(report, indent=2))
+    suffix = "" if args.model == "marqo_fashion_siglip" and len(args.variants) == len(VARIANTS) else f"_{args.model}"
+    (path("reports") / f"exp_secondhand_view{suffix}.json").write_text(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":

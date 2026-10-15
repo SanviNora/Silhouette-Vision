@@ -134,13 +134,15 @@ class SearchEngine:
                exclude: list[str] | None = None, query_colour: np.ndarray | None = None,
                colour_weight: float = colour.DEFAULT_WEIGHT, shortlist: int = 50,
                keywords: str | None = None, space: str = "photo", refine: np.ndarray | None = None,
-               refine_weight: float = 0.3) -> pd.DataFrame:
+               refine_weight: float = 0.3, collapse: float | None = None) -> pd.DataFrame:
         """Top-k by cosine similarity. Text search: space="text" plus `keywords` (keyword match
         added to the rank; the "similarity" column stays the cosine). A photo refined with words
         ("like this, but in red"): `refine` is the text vector, and the rank becomes
         (1 - w) * photo cosine + w * text cosine, each in its own space (the score-level version
         of mixing the two vectors). With `query_colour`, the top `shortlist` items are re-scored
-        as + colour_weight * colour intersection (see colour.py)."""
+        as + colour_weight * colour intersection (see colour.py). With `collapse`, a result is
+        skipped when it has the same brand as a higher-ranked one and their photos are at least
+        that similar (one product listed twice), and the next results move up."""
         mask = filters.mask(self.catalog) if filters else None
         if exclude:
             mask = np.ones(len(self.catalog), bool) if mask is None else mask.copy()
@@ -150,16 +152,36 @@ class SearchEngine:
         if refine is not None:
             rank = (1 - refine_weight) * rank + refine_weight * self.similarities(refine, space="text")
         use_colour = query_colour is not None and self.colour_hists is not None and colour_weight > 0
-        rows = top_k(rank, max(k, shortlist) if use_colour else k, mask)
+        pool = max(k, shortlist) if use_colour else k
+        rows = top_k(rank, 3 * pool if collapse else pool, mask)
         final = rank[rows]
         if use_colour:
             final = final + colour_weight * colour.intersection(query_colour, self.colour_hists[rows].astype(np.float32))
-            order = np.argsort(-final)[:k]
+            order = np.argsort(-final)
             rows, final = rows[order], final[order]
+        if collapse:
+            keep = self._distinct(rows, collapse, k)
+            rows, final = rows[keep], final[keep]
+        rows, final = rows[:k], final[:k]
         result = self.catalog.iloc[rows].copy()
         result.insert(0, "score", final)
         result.insert(1, "similarity", scores[rows])
         return result.reset_index(drop=True)
+
+    def _distinct(self, rows: np.ndarray, threshold: float, k: int) -> list[int]:
+        """Positions of `rows` (best first) without repeat listings: same brand as an earlier kept
+        row and photo cosine >= threshold. Stops once k are kept."""
+        brands = self.catalog.brand.values[rows]
+        emb = self.embeddings[rows].astype(np.float32)
+        keep: list[int] = []
+        for i in range(len(rows)):
+            if isinstance(brands[i], str) and any(
+                    brands[j] == brands[i] and float(emb[i] @ emb[j]) >= threshold for j in keep):
+                continue
+            keep.append(i)
+            if len(keep) == k:
+                break
+        return keep
 
     def best_match(self, query: np.ndarray, filters: Filters | None = None,
                    refine: np.ndarray | None = None) -> tuple[pd.Series, np.ndarray]:

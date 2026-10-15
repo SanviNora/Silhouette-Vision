@@ -110,6 +110,11 @@ def catalog_check(lr) -> dict:
     catalog = load_catalog()
     emb = load_embeddings(PHOTO_MODEL, catalog)
     row_of = pd.Series(np.arange(len(catalog)), index=catalog.item_id)
+    dup = ROOT / "data/processed/duplicates.parquet"  # a removed duplicate's twin is the right answer
+    if dup.exists():
+        d = pd.read_parquet(dup)
+        d = d[d.kept_id.isin(row_of.index) & ~d.removed_id.isin(row_of.index)]
+        row_of = pd.concat([row_of, pd.Series(row_of[d.kept_id].values, index=d.removed_id.values)])
     result = {}
     for subset in ["real_studio_flat", "real_streetlook"]:
         q = np.load(path("embeddings") / "lookbench" / PHOTO_MODEL / f"{subset}_query.npy").astype(np.float32)

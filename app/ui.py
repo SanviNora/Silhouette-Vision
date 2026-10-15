@@ -53,6 +53,9 @@ st.set_page_config(page_title="Silhouette Vision", page_icon="👗", layout="wid
                    initial_sidebar_state="expanded")
 ss = st.session_state
 ASSETS = Path(__file__).resolve().parent / "assets"
+# A result is hidden when a higher one has the same brand and a photo this similar: one product
+# listed twice (scripts/02b_dedupe.py removes identical photos from the catalog itself).
+REPEAT = 0.97
 SOURCE_LABEL = {"zooclaw": "ZooClaw", "lookbench": "LookBench", "secondhand": "Second-hand", "abo": "Amazon"}
 EXAMPLES = ["black leather bag", "white sneakers", "floral midi dress", "levi's jeans", "cream cardigan"]
 COLOUR_HEX = {"Black": "#151515", "White": "#F5F3EE", "Off White": "#EEE8DC", "Cream": "#EFE6D2", "Grey": "#8E8E8E",
@@ -781,7 +784,7 @@ def photo_results(engine, filters, k, match_colour) -> None:
         st.markdown('<div class="sv-display" style="margin-top:2.2rem">Your <em>look-alikes</em></div>'
                     '<div class="sv-note">✓ shared and ≈ close attributes with your photo; the number is visual similarity '
                     "(1.00 = identical image). The dot shows each item's main colour.</div>", unsafe_allow_html=True)
-        grid(engine.search(query, k, filters, query_colour=colour, refine=refine), "img", a["attrs"])
+        grid(engine.search(query, k, filters, query_colour=colour, refine=refine, collapse=REPEAT), "img", a["attrs"])
 
 
 def named_panel(engine, a) -> None:
@@ -826,7 +829,7 @@ def best_match_panel(engine, query, filters, a, refine=None) -> None:
                     f'<div class="dial" style="--p:{prob * 100:.0f};--c:{colour}"><div class="arc"></div><div class="num">{prob:.0%}</div>'
                     f'<div class="ticks"><span>unlikely</span><span>exact</span></div></div><h3>{esc(tier)}</h3></div>'
                     f'<div class="row"><b>Exact-match likelihood {prob:.0%}</b><span>similarity {row.similarity:.2f}</span></div>'
-                    "<p>Calibrated on benchmark photos: when this says 80%+, it was the exact product 90% of the time; "
+                    "<p>Calibrated on benchmark photos: when this says 80%+, it was the exact product 92% of the time; "
                     "for products we don't stock it claims 80%+ for 0.1% of photos. It rewards a result that stands out "
                     "from the rest, not raw similarity. Open the product to see why it matches.</p></div>",
                     unsafe_allow_html=True)
@@ -840,7 +843,7 @@ def words_results(engine, filters, k) -> None:
                     '<div class="sv-note">Matched on look (image embedding) and words (brand, title, type) together.</div>',
                     unsafe_allow_html=True)
         # No similarity number: text-image cosines are small by nature (~0.1) and would read as poor.
-        grid(engine.search(engine.text_vector(text), k, filters, keywords=text, space="text"), "txt", show_similarity=False)
+        grid(engine.search(engine.text_vector(text), k, filters, keywords=text, space="text", collapse=REPEAT), "txt", show_similarity=False)
 
 
 # --- product detail (Allure) ----------------------------------------------------------------------
@@ -919,7 +922,8 @@ def detail_page(engine, filters, k, match_colour) -> None:
     with st.container(key="results"):
         st.markdown('<div class="sv-display">More <em>like this</em></div>', unsafe_allow_html=True)
         colour = engine.item_colour(item_id) if match_colour else None
-        grid(engine.search(engine.item_vector(item_id), k, filters, exclude=[item_id], query_colour=colour), "sim")
+        grid(engine.search(engine.item_vector(item_id), k, filters, exclude=[item_id], query_colour=colour,
+                           collapse=REPEAT), "sim")
 
 
 # --- other pages ----------------------------------------------------------------------------------
@@ -1069,7 +1073,7 @@ def forecast_page(engine) -> None:
 def about_page() -> None:
     page_hero("About <em>the project</em>", "Fashion visual search that tells you how sure it is.")
     with st.container(key="section"):
-        facts = [(f"{len(get_engine().catalog):,}", "products, 2019–2026"), ("90%", "right when it says 80%+ exact"),
+        facts = [(f"{len(get_engine().catalog):,}", "products, 2019–2026"), ("92%", "right when it says 80%+ exact"),
                  ("+18 pts", "text search, hybrid"), ("161", "luxury models by name"), ("34.4%", "forecast error vs 43.7%")]
         for col, (v, label) in zip(st.columns(len(facts)), facts, strict=True):
             col.metric(label, v)

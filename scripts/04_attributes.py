@@ -134,7 +134,7 @@ def main():
 
         # 2. linear probe, C chosen on val
         probes = {}
-        for c in (0.1, 1.0):
+        for c in (0.01, 0.1, 1.0, 10.0):
             m = make_pipeline(StandardScaler(), LogisticRegression(
                 C=c, max_iter=1000, class_weight="balanced"))
             m.fit(X[tr], y[tr])

@@ -31,6 +31,14 @@ text search is unchanged. A photo refined with words mixes the two scores, each 
 59.3%, ZooClaw brand 8.5 → 7.1%. **11 test photos:** about equal (better: burgundy heels, yellow
 top, polka dots; worse: white maxi dress).
 
+**Duplicates (2026-10-15, scripts/02b_dedupe.py).** 587 identical photos removed (pairs at cosine
+≥ 0.99 in both models): 274 second-hand, 143 LookBench, 100 ZooClaw, 70 Amazon; 54,882 products
+left. In-catalog studio photos: exact #1 54.2 → 60.7%, ECE 0.090 → 0.052, P ≥ 0.8 precision
+90 → 92% (shown for 28% of queries, was 24%); absent products: "very likely" 0.1%, "possibly"
+(P ≥ 0.6) 3.0%. Part of the gain is fairer scoring (retrieving a removed twin now counts as
+right). Results also skip a listing that repeats a higher one (same brand, photo ≥ 0.97): repeat
+listings in "more like this" lists 4.8% → 0%.
+
 **Everything that reads a photo was retrained on MODA vectors and re-checked:**
 
 | Part | Marqo | MODA |
