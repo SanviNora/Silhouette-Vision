@@ -24,6 +24,27 @@ import plotly.express as px
 import streamlit as st
 from PIL import Image
 
+
+def reload_changed_library() -> None:
+    """Streamlit hot-reloads this file after a git push but keeps the library modules it already
+    imported, and the models cached from them: new UI code then calls old library code (seen on
+    the hosted app, October 2026). If a library file changed since it was imported, drop the
+    library so it is imported afresh, and clear the caches built with the old code (the next run
+    also re-checks the data bundle's version)."""
+    pkg = sys.modules.get("silhouette_vision")
+    if pkg is None:
+        return
+    src = Path(__file__).resolve().parents[1] / "src" / "silhouette_vision"
+    if max(f.stat().st_mtime for f in src.glob("*.py")) <= getattr(pkg, "LOADED_AT", 0.0):
+        return
+    for name in [n for n in sys.modules if n == "silhouette_vision" or n.startswith("silhouette_vision.")]:
+        del sys.modules[name]
+    st.cache_resource.clear()
+    st.cache_data.clear()
+
+
+reload_changed_library()
+
 from silhouette_vision.config import DATA_REPO, DATA_ROOT, HOSTED, path
 from silhouette_vision.images import load_rgb
 from silhouette_vision.search import Filters, SearchEngine
