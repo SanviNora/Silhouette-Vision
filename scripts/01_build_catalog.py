@@ -23,15 +23,22 @@ from silhouette_vision.images import load_rgb, secondhand_view
 THUMB_SIDE = 512
 
 
-def make_thumb(job: tuple[str, str, str]) -> bool:
-    source, src, dst = job
+CUTOUTS = ROOT / "data/processed/cutouts"  # scripts/01c_cutout_secondhand.py
+
+
+def make_thumb(job: tuple[str, str, str, bool]) -> bool:
+    source, src, dst, force = job
     src, dst = ROOT / src, ROOT / dst
-    if dst.exists():
+    if dst.exists() and not force:
         return False
     dst.parent.mkdir(parents=True, exist_ok=True)
-    img = load_rgb(src)
-    if source == "secondhand":
-        img = secondhand_view(img)
+    cutout = CUTOUTS / source / dst.name
+    if cutout.exists():  # garment cut out onto white (Second-Hand)
+        img = load_rgb(cutout)
+    else:
+        img = load_rgb(src)
+        if source == "secondhand":
+            img = secondhand_view(img)
     img.thumbnail((THUMB_SIDE, THUMB_SIDE))
     img.save(dst, quality=90)
     return True
@@ -52,6 +59,7 @@ def extract_lookbench(catalog) -> None:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--legacy", action="store_true")
+    ap.add_argument("--rethumb", nargs="*", default=[], help="sources whose thumbnails are rebuilt (e.g. secondhand)")
     args = ap.parse_args()
     if args.legacy:
         legacy = build_legacy_catalog()
@@ -61,7 +69,7 @@ def main():
 
     catalog = build_catalog()
     extract_lookbench(catalog)
-    jobs = list(zip(catalog.source, catalog.raw_image_path, catalog.image_path, strict=True))
+    jobs = [(s, r, i, s in args.rethumb) for s, r, i in zip(catalog.source, catalog.raw_image_path, catalog.image_path, strict=True)]
     with ProcessPoolExecutor() as pool:
         made = sum(pool.map(make_thumb, jobs, chunksize=128))
     print(f"thumbnails: {made:,} new, {len(jobs) - made:,} existing")

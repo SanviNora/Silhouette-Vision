@@ -20,6 +20,7 @@ def main():
     ap.add_argument("--limit", type=int, default=None, help="embed only the first N items (smoke test)")
     ap.add_argument("--source", choices=["myntra", "farfetch"], default=None)
     ap.add_argument("--update", action="store_true", help="catalog changed: reuse existing vectors, embed only new items")
+    ap.add_argument("--refresh", nargs="*", default=[], help="with --update: sources to re-embed (their images changed)")
     args = ap.parse_args()
 
     catalog = load_catalog()
@@ -33,7 +34,8 @@ def main():
     if args.limit:
         encoder.name = f"{encoder.name}_smoke"
     if args.update:
-        emb = update_embeddings(encoder, catalog, batch_size=args.batch_size, threads=args.workers)
+        emb = update_embeddings(encoder, catalog, catalog.source.isin(args.refresh).values,
+                                batch_size=args.batch_size, threads=args.workers)
     else:
         emb = embed_catalog(encoder, catalog, batch_size=args.batch_size, threads=args.workers)
     print(f"done: {emb.shape} -> artifacts/embeddings/{encoder.name}/embeddings.npy")

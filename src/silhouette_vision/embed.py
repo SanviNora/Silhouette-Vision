@@ -92,10 +92,11 @@ def load_embeddings(name: str, catalog: pd.DataFrame | None = None, dtype=np.flo
     return emb
 
 
-def update_embeddings(encoder: Encoder, catalog: pd.DataFrame, **kw) -> np.ndarray:
+def update_embeddings(encoder: Encoder, catalog: pd.DataFrame, refresh: np.ndarray | None = None, **kw) -> np.ndarray:
     """After the catalog changed: keep the vectors of items already embedded (matched by item_id),
     embed only the new ones, and save in the new catalog's order. The chunk cache belongs to the
-    old row order, so it is removed (a stale chunk would silently mismatch rows)."""
+    old row order, so it is removed (a stale chunk would silently mismatch rows). `refresh`: a
+    boolean mask of rows to re-embed although known (their image changed)."""
     import shutil
 
     out_dir = embeddings_dir(encoder.name)
@@ -103,6 +104,8 @@ def update_embeddings(encoder: Encoder, catalog: pd.DataFrame, **kw) -> np.ndarr
     old_ids = pd.read_parquet(out_dir / "item_ids.parquet").item_id
     row_of = pd.Series(np.arange(len(old_ids)), index=old_ids.values)
     have = catalog.item_id.isin(row_of.index).values
+    if refresh is not None:
+        have = have & ~np.asarray(refresh, bool)
     emb = np.zeros((len(catalog), old.shape[1]), np.float16)
     emb[have] = old[row_of[catalog.item_id[have]].values]
     if (~have).any():
@@ -115,8 +118,8 @@ def update_embeddings(encoder: Encoder, catalog: pd.DataFrame, **kw) -> np.ndarr
     shutil.rmtree(out_dir / "chunks", ignore_errors=True)
     np.save(out_dir / "embeddings.npy", emb)
     catalog[["item_id"]].to_parquet(out_dir / "item_ids.parquet", index=False)
-    print(f"{encoder.name}: reused {have.sum():,}, embedded {(~have).sum():,}, dropped "
-          f"{len(old_ids) - have.sum():,} items no longer in the catalog")
+    print(f"{encoder.name}: reused {have.sum():,}, embedded {(~have).sum():,}, "
+          f"{len(old_ids) - catalog.item_id.isin(row_of.index).sum():,} items no longer in the catalog")
     return emb
 
 
