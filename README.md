@@ -33,6 +33,10 @@ past launches.
   but only its image side was retrained; its text tower is byte-identical to the old model's, so text
   queries are matched against the old model's catalog vectors. Same memory, better photos, unchanged text
   search. ([Phase 2](docs/phase2_results.md))
+- **Clean the catalog, then measure it:** 31,659 donated-garment photos were cut out of their sorting-table
+  background (BiRefNet); type agreement among look-alikes rose 65.9 → 67.9% and photo–text matching
+  63.4 → 66.0%, while a faster model was rejected for leaving tapes and cables in 6% of photos.
+  ([Phase 1](docs/phase1_results.md))
 - **Re-measure published claims:** a newer model's authors reported our model at 43.9 R@10; on
   identical data it scored 67.3, and the two tied on photo search. ([Phase 2](docs/phase2_results.md))
 - **Cheap beats big:** hybrid keyword + embedding search added 18 points of text-search R@10,

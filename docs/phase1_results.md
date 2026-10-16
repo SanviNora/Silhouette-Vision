@@ -1,5 +1,22 @@
 # Phase 1 Results — Visual Search MVP
 
+## Update 2026-10-16: Second-Hand garments cut out onto white
+The 31,662 Second-Hand photos showed garments on a white-tiled sorting table (95% of the catalog's
+dresses). BiRefNet (MIT, src/silhouette_vision/cutout.py, scripts/01c_cutout_secondhand.py) now
+cuts each garment out, trims it and centres it on white; 26 photos (0.08%) with an implausible
+mask keep the old rotated centre crop. ~1.4–2.4 s per photo on an M4 (about 20 h of GPU time).
+
+| 2,000 labelled garments (scripts/exp_secondhand_view.py) | Rotated + centre crop | Rotated + cut-out |
+|---|---|---|
+| MODA: type 10-NN / pattern 10-NN / type zero-shot | 65.9 / 64.1 / 63.4% | 67.9 / 64.7 / 66.0% |
+| Marqo: type 10-NN / pattern 10-NN / type zero-shot | 65.6 / 62.0 / 62.0% | 69.0 / 62.2 / 66.1% |
+
+Whole catalog afterwards: degraded photos find their original 98.0% (97.5%); absent products called
+"possibly" (P ≥ 0.5) 11.8% (15.3%), "very likely" 0.0% (0.1%); studio in-catalog exact #1 59.3%
+(60.7%, 14 of 985 photos); Second-Hand colour attribute 84.7% (86.5%). The 11 test photos: right
+category in the top 12 87.9% (89.4%, 2 of 132 results). BiRefNet-lite was 2.4× faster but left
+measuring tapes and cables in 6 of 100 sample photos.
+
 ## Update 2026-09-29: recent catalog (2022–2026)
 The search catalog was rebuilt from recent, shareable sources only; Myntra (median product year
 2012) and Farfetch (2019, no redistribution) became a local *legacy* catalog used to train the
