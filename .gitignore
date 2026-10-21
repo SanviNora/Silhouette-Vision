@@ -31,3 +31,6 @@ deploy_upload/
 
 # Cached intermediate images (experiments).
 artifacts/cache/
+
+# Personal study guide and report drafts (local only, not for the public repo).
+Silhouette Vision Guide/
